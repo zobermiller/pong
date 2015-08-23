@@ -50,7 +50,7 @@ bool initGL() {
 	return true;
 }
 
-void freeTexture(texture *tex) {
+void freeTexture(texture* tex) {
 	if(tex->textureId) {
 		glDeleteTextures(1, &tex->textureId);
 		tex->textureId = 0;
@@ -86,7 +86,7 @@ bool loadTextureFromPixels(unsigned int* pixels, int width, int height, texture*
 	return true;
 }
 
-bool loadMedia(texture *tex) {
+bool loadMedia(texture* tex) {
 	unsigned int checkerBoard[128 * 128];
 
 	for(int i=0; i < (128* 128); i++) {
