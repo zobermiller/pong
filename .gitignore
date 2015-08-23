@@ -1,0 +1,12 @@
+ipch
+build
+*.exe
+*.sdf
+*.pdb
+*.ilk
+*.o
+*.obj
+*.zdo
+thumbs.db
+*.opensdf
+*.v12.suo
