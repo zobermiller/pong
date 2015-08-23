@@ -9,7 +9,7 @@ struct texture {
 	int textureHeight;
 };
 
-void handleKey(int vkCode) {
+void handleKeyDown(int vkCode) {
 	if(vkCode == VK_ESCAPE)
 		PostQuitMessage(0);
 }
@@ -17,7 +17,7 @@ void handleKey(int vkCode) {
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
 	switch(message) {
 		case WM_KEYDOWN: {
-			handleKey(wParam);
+			handleKeyDown(wParam);
 		} break;
 
 		case WM_DESTROY: {
