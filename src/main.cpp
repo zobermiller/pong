@@ -88,12 +88,12 @@ bool loadTextureFromPixels(texture* tex) {
 }
 
 bool loadMedia(texture* tex, int width, int height) {
+	tex->pixels = new unsigned int[width * height];
 	tex->textureWidth = width;
 	tex->textureHeight = height;
-	tex->pixels = new unsigned int[128 * 128];
 
 	for(int i=0; i < (width * height); i++) {
-		int check = i / 128 & 16 ^ i % 128 & 16;
+		int check = i / width & 16 ^ i % height & 16;
 		if(check)
 			tex->pixels[i] = (0xff << 24) | (0xff << 16) | (0xff << 8) | (0xff << 0);
 		else
@@ -197,7 +197,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	ShowWindow(hWnd, nCmdShow);
 
 	texture mainTexture = {};
-	if(!initGL() || !loadMedia(&mainTexture, 128, 128))
+	if(!initGL() || !loadMedia(&mainTexture, 256, 256))
 		PostQuitMessage(0);
 
 	MSG msg;
