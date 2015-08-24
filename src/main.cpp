@@ -4,7 +4,9 @@
 #define SCREEN_HEIGHT 600
 
 struct texture {
+	unsigned int* pixels;
 	unsigned int textureId;
+
 	int textureWidth;
 	int textureHeight;
 };
@@ -52,25 +54,24 @@ bool initGL() {
 
 void freeTexture(texture* tex) {
 	if(tex->textureId) {
+		delete[] tex->pixels;
+		tex->pixels = 0;
 		glDeleteTextures(1, &tex->textureId);
 		tex->textureId = 0;
-	}
 
-	tex->textureHeight = 0;
-	tex->textureWidth = 0;
+		tex->textureHeight = 0;
+		tex->textureWidth = 0;
+	}
 }
 
-bool loadTextureFromPixels(unsigned int* pixels, int width, int height, texture* tex) {
+bool loadTextureFromPixels(texture* tex) {
 	freeTexture(tex);
-
-	tex->textureWidth = width;
-	tex->textureHeight = height;
 
 	glGenTextures(1, &tex->textureId);
 
 	glBindTexture(GL_TEXTURE_2D, tex->textureId);
 
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, tex->textureWidth, tex->textureHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, tex->pixels);
 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -86,18 +87,20 @@ bool loadTextureFromPixels(unsigned int* pixels, int width, int height, texture*
 	return true;
 }
 
-bool loadMedia(texture* tex) {
-	unsigned int checkerBoard[128 * 128];
+bool loadMedia(texture* tex, int width, int height) {
+	tex->textureWidth = width;
+	tex->textureHeight = height;
+	tex->pixels = new unsigned int[128 * 128];
 
-	for(int i=0; i < (128* 128); i++) {
+	for(int i=0; i < (width * height); i++) {
 		int check = i / 128 & 16 ^ i % 128 & 16;
 		if(check)
-			checkerBoard[i] = (0xff << 24) | (0xff << 16) | (0xff << 8) | (0xff << 0);
+			tex->pixels[i] = (0xff << 24) | (0xff << 16) | (0xff << 8) | (0xff << 0);
 		else
-			checkerBoard[i] = (0xff << 24) | (0x00 << 16) | (0x00 << 8) | (0xff << 0);
+			tex->pixels[i] = (0xff << 24) | (0x00 << 16) | (0x00 << 8) | (0xff << 0);
 	}
 
-	bool load = loadTextureFromPixels(checkerBoard, 128, 128, tex);
+	bool load = loadTextureFromPixels(tex);
 	if(!load) {
 		OutputDebugString("Can't load checkerboard texture\n");
 		return false;
@@ -147,10 +150,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	wc.hCursor = LoadCursor(NULL, IDC_ARROW);
 	wc.lpszClassName = "WindowClass";
 
-#if CHAT_
-	askToHostOrConnect();
-#endif
-
 	RegisterClassEx(&wc);
 
 	hWnd = CreateWindowEx(NULL,
@@ -197,8 +196,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 	ShowWindow(hWnd, nCmdShow);
 
-	texture mainTexture;
-	if(!initGL() || !loadMedia(&mainTexture))
+	texture mainTexture = {};
+	if(!initGL() || !loadMedia(&mainTexture, 128, 128))
 		PostQuitMessage(0);
 
 	MSG msg;
