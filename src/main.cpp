@@ -1,14 +1,51 @@
 #include "precompiled.h"
 
+typedef int8_t s8;
+typedef int16_t s16;
+typedef int32_t s32;
+typedef int64_t s64;
+
+typedef uint8_t u8;
+typedef uint16_t u16;
+typedef uint32_t u32;
+typedef uint64_t u64;
+
+#define kilobytes(value) ((value) * 1024LL)
+#define megabytes(value) (kilobytes(value) * 1024LL)
+#define gigabytes(value) (megabytes(value) * 1024LL)
+
 #define SCREEN_WIDTH 800
 #define SCREEN_HEIGHT 600
 
-struct texture {
-	unsigned int* pixels;
-	unsigned int textureId;
+struct offscreen_buffer {
+	void* memory;
+	s32 height;
+	s32 width;
+	s32 bitsPerPixel;
+	s32 pitch;
+};
 
-	int textureWidth;
-	int textureHeight;
+struct game_memory {
+	void* storage;
+	u32 storageSize;
+
+	bool isInitialized;
+};
+
+struct player {
+	float paddleX_, paddleY;
+};
+
+struct ball {
+	float ballX, ballY;
+};
+
+struct game_state {
+	player players[2];
+	float scores[2];
+	ball theBall;
+
+	v2* staticBoardVertices;
 };
 
 void handleKeyDown(int vkCode) {
@@ -52,21 +89,7 @@ bool initGL() {
 	return true;
 }
 
-void freeTexture(texture* tex) {
-	if(tex->textureId) {
-		delete[] tex->pixels;
-		tex->pixels = 0;
-		glDeleteTextures(1, &tex->textureId);
-		tex->textureId = 0;
-
-		tex->textureHeight = 0;
-		tex->textureWidth = 0;
-	}
-}
-
-bool loadTextureFromPixels(texture* tex) {
-	freeTexture(tex);
-
+bool loadTextureFromPixels(void* pixels) {
 	glGenTextures(1, &tex->textureId);
 
 	glBindTexture(GL_TEXTURE_2D, tex->textureId);
@@ -108,7 +131,7 @@ bool loadMedia(texture* tex, int width, int height) {
 	return true;
 }
 
-void textureRender(texture tex, float x, float y) {
+void textureRender(float x, float y) {
 	if(tex.textureId) {
 		glLoadIdentity();
 
@@ -127,15 +150,15 @@ void textureRender(texture tex, float x, float y) {
 	}
 }
 
-void render(texture tex) {
+void render() {
 	glClear(GL_COLOR_BUFFER_BIT);
 
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
-	float x = (SCREEN_WIDTH - tex.textureWidth) / 2.0f;
-	float y = (SCREEN_HEIGHT - tex.textureHeight) / 2.0f;
+	float x = (SCREEN_WIDTH - 2) / 2.0f;
+	float y = (SCREEN_HEIGHT - 2) / 2.0f;
 
-	textureRender(tex, x, y);
+	textureRender(x, y);
 }
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
@@ -196,7 +219,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 	ShowWindow(hWnd, nCmdShow);
 
-	texture mainTexture = {};
+	game_memory gameMemory = {};
+	gameMemory.storageSize = kilobytes(1);
+
 	if(!initGL() || !loadMedia(&mainTexture, 256, 256))
 		PostQuitMessage(0);
 

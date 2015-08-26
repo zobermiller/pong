@@ -7,5 +7,8 @@
 #include <io.h>
 #include <fcntl.h>
 #include <stdio.h>
+#include <stdint.h>
+#include <stddef.h>
+#include "pong_math.h"
 
 #endif

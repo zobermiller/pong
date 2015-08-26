@@ -26,5 +26,8 @@
     <ClInclude Include="src\precompiled.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\pong_math.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
