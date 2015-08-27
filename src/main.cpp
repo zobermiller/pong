@@ -1,4 +1,5 @@
 #include "precompiled.h"
+#include "pong_math.h"
 
 typedef int8_t s8;
 typedef int16_t s16;
@@ -17,6 +18,14 @@ typedef uint64_t u64;
 #define SCREEN_WIDTH 800
 #define SCREEN_HEIGHT 600
 
+enum wall {
+	WALL_NONE,
+	WALL_LEFT,
+	WALL_UP,
+	WALL_RIGHT,
+	WALL_DOWN,
+};
+
 struct offscreen_buffer {
 	void* memory;
 	s32 height;
@@ -28,24 +37,34 @@ struct offscreen_buffer {
 struct game_memory {
 	void* storage;
 	u32 storageSize;
-
-	bool isInitialized;
 };
 
 struct player {
-	float paddleX_, paddleY;
+	v2 paddlePos;
+	// Size is (width, height)
+	v2 size;
+	u32 score;
+
+	v2 vertices[4];
 };
 
 struct ball {
-	float ballX, ballY;
+	v2 ballPos;
+	// Size is (width, height)
+	v2 size;
+	v2 velocity;
+
+	v2 vertices[4];
 };
 
 struct game_state {
 	player players[2];
-	float scores[2];
 	ball theBall;
 
-	v2* staticBoardVertices;
+	u32 arenaWidth, arenaHeight;
+
+	u32 staticVerticesCount;
+	v2 staticVertices[SCREEN_HEIGHT];
 };
 
 void handleKeyDown(int vkCode) {
@@ -79,8 +98,6 @@ bool initGL() {
 
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
-	glEnable(GL_TEXTURE_2D);
-
 	GLenum error = glGetError();
 	if(error != GL_NO_ERROR) {
 		OutputDebugString("Error initializing OpenGL!\n");
@@ -89,76 +106,87 @@ bool initGL() {
 	return true;
 }
 
-bool loadTextureFromPixels(void* pixels) {
-	glGenTextures(1, &tex->textureId);
-
-	glBindTexture(GL_TEXTURE_2D, tex->textureId);
-
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, tex->textureWidth, tex->textureHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, tex->pixels);
-
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-
-	glBindTexture(GL_TEXTURE_2D, NULL);
-
-	GLenum error = glGetError();
-	if(error != GL_NO_ERROR) {
-		OutputDebugString("Error loading texture\n");
-		return false;
-	}
-
-	return true;
+void makeRectFromCenterPoint(v2 centerPoint, v2 size, v2 vertices[]) {
+	vertices[0] = V2(centerPoint.x - 0.5f * size.x,
+									 centerPoint.y - 0.5f * size.y);
+	vertices[1] = V2(centerPoint.x + 0.5f * size.x,
+									 centerPoint.y - 0.5f * size.y);
+	vertices[2] = V2(centerPoint.x + 0.5f * size.x,
+									 centerPoint.y + 0.5f * size.y);
+	vertices[3] = V2(centerPoint.x - 0.5f * size.x,
+									 centerPoint.y + 0.5f * size.y);
 }
 
-bool loadMedia(texture* tex, int width, int height) {
-	tex->pixels = new unsigned int[width * height];
-	tex->textureWidth = width;
-	tex->textureHeight = height;
+void initGameState(game_state* gameState, u32 arenaWidth, u32 arenaHeight,
+									 v2 player1Pos, v2 player2Pos, v2 ballPos,
+									 v2 playerSize, v2 ballSize) {
+	gameState->arenaWidth = arenaWidth;
+	gameState->arenaHeight = arenaHeight;
 
-	for(int i=0; i < (width * height); i++) {
-		int check = i / width & 16 ^ i % height & 16;
-		if(check)
-			tex->pixels[i] = (0xff << 24) | (0xff << 16) | (0xff << 8) | (0xff << 0);
-		else
-			tex->pixels[i] = (0xff << 24) | (0x00 << 16) | (0x00 << 8) | (0xff << 0);
-	}
+	gameState->players[0].paddlePos = player1Pos;
+	gameState->players[0].score = 0;
+	gameState->players[0].size = playerSize;
+	makeRectFromCenterPoint(gameState->players[0].paddlePos, gameState->players[0].size, gameState->players[0].vertices);
 
-	bool load = loadTextureFromPixels(tex);
-	if(!load) {
-		OutputDebugString("Can't load checkerboard texture\n");
-		return false;
-	}
-	return true;
+	gameState->players[1].paddlePos = player2Pos;
+	gameState->players[1].score = 0;
+	gameState->players[1].size = playerSize;
+	makeRectFromCenterPoint(gameState->players[1].paddlePos, gameState->players[1].size, gameState->players[1].vertices);
+
+	gameState->theBall.ballPos = ballPos;
+	gameState->theBall.size = ballSize;
+	gameState->theBall.velocity = V2(600, 0);
+	makeRectFromCenterPoint(gameState->theBall.ballPos, gameState->theBall.size, gameState->theBall.vertices);
+
+	gameState->staticVerticesCount = arenaHeight;
+	for(u32 i=0; i < gameState->staticVerticesCount; i++)
+		gameState->staticVertices[i] = V2((float)(gameState->arenaWidth / 2), (float)i);
 }
 
-void textureRender(float x, float y) {
-	if(tex.textureId) {
-		glLoadIdentity();
+wall collidedWithWall(v2 pos, u32 width, u32 height) {
+	if(pos.x < 0)
+		return WALL_LEFT;
+	else if(pos.y > height)
+		return WALL_UP;
+	else if(pos.x > width)
+		return WALL_RIGHT;
+	else if(pos.y < 0)
+		return WALL_DOWN;
 
-		glTranslatef(x, y, 0.0f);
-
-		glBindTexture(GL_TEXTURE_2D, tex.textureId);
-
-		glBegin(GL_QUADS);
-
-		glTexCoord2f(0.0f, 0.0f); glVertex2f(0.0f, 0.0f);
-		glTexCoord2f(1.0f, 0.0f); glVertex2f((float)tex.textureWidth, 0.0f);
-		glTexCoord2f(1.0f, 1.0f); glVertex2f((float)tex.textureWidth, (float)tex.textureHeight);
-		glTexCoord2f(0.0f, 1.0f); glVertex2f(0.0f, (float)tex.textureHeight);
-
-		glEnd();
-	}
+	return WALL_NONE;
 }
 
-void render() {
+void update(game_state* gameState, u32 dt) {
+	wall whichWall = collidedWithWall(gameState->theBall.ballPos, gameState->arenaWidth, gameState->arenaHeight);
+
+	if(whichWall == WALL_LEFT || whichWall == WALL_RIGHT)
+		gameState->theBall.velocity = V2(-gameState->theBall.velocity.x, gameState->theBall.velocity.y);
+	else if(whichWall == WALL_UP || whichWall == WALL_DOWN)
+		gameState->theBall.velocity = V2(gameState->theBall.velocity.x, -gameState->theBall.velocity.y);
+
+	gameState->theBall.ballPos += (float)(dt / 1000.0f) * gameState->theBall.velocity;
+	makeRectFromCenterPoint(gameState->theBall.ballPos, gameState->theBall.size, gameState->theBall.vertices);
+}
+
+void render(game_memory* gameMemory, game_state* gameState) {
 	glClear(GL_COLOR_BUFFER_BIT);
-
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
-	float x = (SCREEN_WIDTH - 2) / 2.0f;
-	float y = (SCREEN_HEIGHT - 2) / 2.0f;
+	glBegin(GL_POINTS);
+	glColor3f(1.0f, 1.0f, 1.0f);
+	for(u32 i=0; i < gameState->staticVerticesCount; i++)
+		glVertex2f(gameState->staticVertices[i].x, gameState->staticVertices[i].y);
+	glEnd();
 
-	textureRender(x, y);
+	glBegin(GL_QUADS);
+	for(int i=0; i < 2; i++) {
+		for(int j=0; j < 4; j++)
+			glVertex2f(gameState->players[i].vertices[j].x, gameState->players[i].vertices[j].y);
+	}
+
+	for(int i=0; i < 4; i++)
+		glVertex2f(gameState->theBall.vertices[i].x, gameState->theBall.vertices[i].y);
+	glEnd();
 }
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
@@ -177,8 +205,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 	hWnd = CreateWindowEx(NULL,
 												"WindowClass",
-												"OpenGL Template",
-												WS_OVERLAPPEDWINDOW | WS_VISIBLE | WS_CLIPCHILDREN,
+												"Pong",
+												WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU |
+												WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_VISIBLE,
 												0, 0,
 												SCREEN_WIDTH, SCREEN_HEIGHT,
 												NULL,
@@ -215,24 +244,28 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 	PFNWGLSWAPINTERVALEXTPROC proc = (PFNWGLSWAPINTERVALEXTPROC)wglGetProcAddress("wglSwapIntervalEXT");
 	if(proc)
-		proc(-1);
+		proc(1);
 
 	ShowWindow(hWnd, nCmdShow);
 
 	game_memory gameMemory = {};
-	gameMemory.storageSize = kilobytes(1);
+	gameMemory.storageSize = megabytes(1);
+	gameMemory.storage = VirtualAlloc(0, (size_t)gameMemory.storageSize, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
 
-	if(!initGL() || !loadMedia(&mainTexture, 256, 256))
-		PostQuitMessage(0);
+	game_state *gameState = (game_state*)gameMemory.storage;
 
-	MSG msg;
+	initGL();
+	initGameState(gameState, SCREEN_WIDTH, SCREEN_HEIGHT, V2(50, SCREEN_HEIGHT / 2), V2(SCREEN_WIDTH - 50, SCREEN_HEIGHT / 2),
+								V2(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2), V2(20, 50), V2(10, 10));
 
 	int frames = 0;
-	unsigned long timer = GetTickCount();
+	u32 timer = GetTickCount();
 	char fpsBuffer[20];
 
 	bool running = true;
 
+	MSG msg;
+	u32 simTime = GetTickCount();
 	while(running) {
 		while(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
 			switch(msg.message) {
@@ -247,19 +280,24 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 			}
 		}
 
-		render(mainTexture);
+		u32 realTime = GetTickCount();
+		while(simTime < realTime) {
+			simTime += 16;
+			update(gameState, 16);
+		}
+		render(&gameMemory, gameState);
 		SwapBuffers(deviceContext);
 
-		frames++;
-
+		/*frames++;
 		if(GetTickCount() - timer > 1000) {
 			timer += 1000;
 			wsprintf(fpsBuffer, "FPS: %d\n", frames);
 			OutputDebugString(fpsBuffer);
 			frames = 0;
-		}
+		}*/
 	}
 
 	wglDeleteContext(renderContext);
+	VirtualFree(gameMemory.storage, 0, MEM_RELEASE);
 	return msg.wParam;
 }
