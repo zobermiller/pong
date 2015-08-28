@@ -232,9 +232,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	HGLRC renderContext = wglCreateContext(deviceContext);
 	wglMakeCurrent(deviceContext, renderContext);
 
-	PFNWGLSWAPINTERVALEXTPROC proc = (PFNWGLSWAPINTERVALEXTPROC)wglGetProcAddress("wglSwapIntervalEXT");
-	if(proc)
-		proc(-1);
+	//PFNWGLSWAPINTERVALEXTPROC proc = (PFNWGLSWAPINTERVALEXTPROC)wglGetProcAddress("wglSwapIntervalEXT");
+	//if(proc)
+		//proc(-1);
 
 	ShowWindow(hWnd, nCmdShow);
 
