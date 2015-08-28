@@ -2,15 +2,42 @@
 #include "pong_math.h"
 #include "win32_pong.h"
 
+bool wKeyDown = false;
+bool sKeyDown = false;
+bool iKeyDown = false;
+bool kKeyDown = false;
 void handleKeyDown(int vkCode) {
 	if(vkCode == VK_ESCAPE)
 		PostQuitMessage(0);
+	if(vkCode == 0x57)
+		wKeyDown = true;
+	if(vkCode == 0x53)
+		sKeyDown = true;
+	if(vkCode == 0x49)
+		iKeyDown = true;
+	if(vkCode == 0x4b)
+		kKeyDown = true;
+}
+
+void handleKeyUp(int vkCode) {
+	if(vkCode == 0x57)
+		wKeyDown = false;
+	if(vkCode == 0x53)
+		sKeyDown = false;
+	if(vkCode == 0x49)
+		iKeyDown = false;
+	if(vkCode == 0x4b)
+		kKeyDown = false;
 }
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
 	switch(message) {
 		case WM_KEYDOWN: {
 			handleKeyDown(wParam);
+		} break;
+
+		case WM_KEYUP: {
+			handleKeyUp(wParam);
 		} break;
 
 		case WM_DESTROY: {
@@ -73,9 +100,8 @@ void initGameState(game_state* gameState, u32 arenaWidth, u32 arenaHeight,
 	gameState->theBall.velocity = V2(600, 0);
 	makeRectFromCenterPoint(gameState->theBall.ballPos, gameState->theBall.size, gameState->theBall.vertices);
 
-	gameState->staticVerticesCount = arenaHeight;
-	for(u32 i=0; i < gameState->staticVerticesCount; i++)
-		gameState->staticVertices[i] = V2((float)(gameState->arenaWidth / 2), (float)i);
+	gameState->staticVertices[0] = V2(SCREEN_WIDTH / 2, 0);
+	gameState->staticVertices[1] = V2(SCREEN_WIDTH / 2, SCREEN_HEIGHT);
 }
 
 wall collidedWithWall(v2 pos, u32 width, u32 height) {
@@ -101,16 +127,28 @@ void update(game_state* gameState, u32 dt) {
 
 	gameState->theBall.ballPos += (float)(dt / 1000.0f) * gameState->theBall.velocity;
 	makeRectFromCenterPoint(gameState->theBall.ballPos, gameState->theBall.size, gameState->theBall.vertices);
+
+	if(wKeyDown)
+		gameState->players[0].paddlePos += (float)(dt / 1000.0f) * V2(0, -200);
+	if(sKeyDown)
+		gameState->players[0].paddlePos += (float)(dt / 1000.0f) * V2(0, 200);
+	if(iKeyDown)
+		gameState->players[1].paddlePos += (float)(dt / 1000.0f) * V2(0, -200);
+	if(kKeyDown)
+		gameState->players[1].paddlePos += (float)(dt / 1000.0f) * V2(0, 200);
+
+	makeRectFromCenterPoint(gameState->players[0].paddlePos, gameState->players[0].size, gameState->players[0].vertices);
+	makeRectFromCenterPoint(gameState->players[1].paddlePos, gameState->players[1].size, gameState->players[1].vertices);
 }
 
 void render(game_memory* gameMemory, game_state* gameState) {
 	glClear(GL_COLOR_BUFFER_BIT);
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
-	glBegin(GL_POINTS);
 	glColor3f(1.0f, 1.0f, 1.0f);
-	for(u32 i=0; i < gameState->staticVerticesCount; i++)
-		glVertex2f(gameState->staticVertices[i].x, gameState->staticVertices[i].y);
+	glBegin(GL_LINES);
+	glVertex2f(gameState->staticVertices[0].x, gameState->staticVertices[0].y);
+	glVertex2f(gameState->staticVertices[1].x, gameState->staticVertices[1].y);
 	glEnd();
 
 	glBegin(GL_QUADS);

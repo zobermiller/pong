@@ -63,8 +63,7 @@ struct game_state {
 
 	u32 arenaWidth, arenaHeight;
 
-	u32 staticVerticesCount;
-	v2 staticVertices[SCREEN_HEIGHT];
+	v2 staticVertices[2];
 };
 
 #endif
