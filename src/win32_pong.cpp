@@ -282,10 +282,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 			if(sleepMS > 0) {
 				Sleep(sleepMS);
 			}
+
+			while(secondsElapsedForFrame < targetSecondsPerFrame) {
+				secondsElapsedForFrame = getSecondsElapsed(lastCounter, getWallClock());
+			}
 		}
-		while(secondsElapsedForFrame < targetSecondsPerFrame) {
-			secondsElapsedForFrame = getSecondsElapsed(lastCounter, getWallClock());
-		}
+
+		LARGE_INTEGER endCounter = getWallClock();
+		lastCounter = endCounter;
 	}
 
 	wglDeleteContext(renderContext);
