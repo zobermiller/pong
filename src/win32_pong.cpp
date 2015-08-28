@@ -6,6 +6,8 @@ bool wKeyDown = false;
 bool sKeyDown = false;
 bool iKeyDown = false;
 bool kKeyDown = false;
+s64 globalPerfCountFrequency;
+
 void handleKeyDown(int vkCode) {
 	if(vkCode == VK_ESCAPE)
 		PostQuitMessage(0);
@@ -28,6 +30,17 @@ void handleKeyUp(int vkCode) {
 		iKeyDown = false;
 	if(vkCode == 0x4b)
 		kKeyDown = false;
+}
+
+LARGE_INTEGER getWallClock() {
+	LARGE_INTEGER result;
+	QueryPerformanceCounter(&result);
+	return result;
+}
+
+float getSecondsElapsed(LARGE_INTEGER start, LARGE_INTEGER end) {
+	float result = ((float)(end.QuadPart - start.QuadPart) / (float)globalPerfCountFrequency);
+	return result;
 }
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
@@ -117,7 +130,7 @@ wall collidedWithWall(v2 pos, u32 width, u32 height) {
 	return WALL_NONE;
 }
 
-void update(game_state* gameState, u32 dt) {
+void update(game_state* gameState, float dt) {
 	wall whichWall = collidedWithWall(gameState->theBall.ballPos, gameState->arenaWidth, gameState->arenaHeight);
 
 	if(whichWall == WALL_LEFT || whichWall == WALL_RIGHT)
@@ -125,17 +138,17 @@ void update(game_state* gameState, u32 dt) {
 	else if(whichWall == WALL_UP || whichWall == WALL_DOWN)
 		gameState->theBall.velocity = V2(gameState->theBall.velocity.x, -gameState->theBall.velocity.y);
 
-	gameState->theBall.ballPos += (float)(dt / 1000.0f) * gameState->theBall.velocity;
+	gameState->theBall.ballPos += (float)dt * gameState->theBall.velocity;
 	makeRectFromCenterPoint(gameState->theBall.ballPos, gameState->theBall.size, gameState->theBall.vertices);
 
 	if(wKeyDown)
-		gameState->players[0].paddlePos += (float)(dt / 1000.0f) * V2(0, -200);
+		gameState->players[0].paddlePos += (float)dt * V2(0, -200);
 	if(sKeyDown)
-		gameState->players[0].paddlePos += (float)(dt / 1000.0f) * V2(0, 200);
+		gameState->players[0].paddlePos += (float)dt * V2(0, 200);
 	if(iKeyDown)
-		gameState->players[1].paddlePos += (float)(dt / 1000.0f) * V2(0, -200);
+		gameState->players[1].paddlePos += (float)dt * V2(0, -200);
 	if(kKeyDown)
-		gameState->players[1].paddlePos += (float)(dt / 1000.0f) * V2(0, 200);
+		gameState->players[1].paddlePos += (float)dt * V2(0, 200);
 
 	makeRectFromCenterPoint(gameState->players[0].paddlePos, gameState->players[0].size, gameState->players[0].vertices);
 	makeRectFromCenterPoint(gameState->players[1].paddlePos, gameState->players[1].size, gameState->players[1].vertices);
@@ -165,6 +178,10 @@ void render(game_memory* gameMemory, game_state* gameState) {
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
 	HWND hWnd;
 	WNDCLASSEX wc;
+
+	LARGE_INTEGER perfCountFrequencyResult;
+	QueryPerformanceFrequency(&perfCountFrequencyResult);
+	globalPerfCountFrequency = perfCountFrequencyResult.QuadPart;
 
 	wc ={ 0 };
 	wc.cbSize = sizeof(WNDCLASSEX);
@@ -231,14 +248,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	initGameState(gameState, SCREEN_WIDTH, SCREEN_HEIGHT, V2(50, SCREEN_HEIGHT / 2), V2(SCREEN_WIDTH - 50, SCREEN_HEIGHT / 2),
 								V2(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2), V2(20, 50), V2(10, 10));
 
-	int frames = 0;
-	u32 timer = GetTickCount();
-	char fpsBuffer[20];
+	float targetSecondsPerFrame = 1.0f / 60.0f;
 
 	bool running = true;
-
 	MSG msg;
-	u32 simTime = GetTickCount();
+	LARGE_INTEGER lastCounter = getWallClock();
+
 	while(running) {
 		while(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
 			switch(msg.message) {
@@ -253,21 +268,24 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 			}
 		}
 
-		u32 realTime = GetTickCount();
-		while(simTime < realTime) {
-			simTime += 16;
-			update(gameState, 16);
-		}
+		update(gameState, targetSecondsPerFrame);
+
 		render(&gameMemory, gameState);
 		SwapBuffers(deviceContext);
 
-		/*frames++;
-		if(GetTickCount() - timer > 1000) {
-			timer += 1000;
-			wsprintf(fpsBuffer, "FPS: %d\n", frames);
-			OutputDebugString(fpsBuffer);
-			frames = 0;
-		}*/
+		LARGE_INTEGER workCounter = getWallClock();
+		float workSecondsElapsed = getSecondsElapsed(lastCounter, workCounter);
+		float secondsElapsedForFrame = workSecondsElapsed;
+
+		if(secondsElapsedForFrame < targetSecondsPerFrame) {
+			DWORD sleepMS = (DWORD)(1000.0f * (targetSecondsPerFrame - secondsElapsedForFrame));
+			if(sleepMS > 0) {
+				Sleep(sleepMS);
+			}
+		}
+		while(secondsElapsedForFrame < targetSecondsPerFrame) {
+			secondsElapsedForFrame = getSecondsElapsed(lastCounter, getWallClock());
+		}
 	}
 
 	wglDeleteContext(renderContext);
