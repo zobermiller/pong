@@ -138,17 +138,17 @@ void update(game_state* gameState, float dt) {
 	else if(whichWall == WALL_UP || whichWall == WALL_DOWN)
 		gameState->theBall.velocity = V2(gameState->theBall.velocity.x, -gameState->theBall.velocity.y);
 
-	gameState->theBall.ballPos += (float)dt * gameState->theBall.velocity;
+	gameState->theBall.ballPos += dt * gameState->theBall.velocity;
 	makeRectFromCenterPoint(gameState->theBall.ballPos, gameState->theBall.size, gameState->theBall.vertices);
 
 	if(wKeyDown)
-		gameState->players[0].paddlePos += (float)dt * V2(0, -200);
+		gameState->players[0].paddlePos += dt * V2(0, -200);
 	if(sKeyDown)
-		gameState->players[0].paddlePos += (float)dt * V2(0, 200);
+		gameState->players[0].paddlePos += dt * V2(0, 200);
 	if(iKeyDown)
-		gameState->players[1].paddlePos += (float)dt * V2(0, -200);
+		gameState->players[1].paddlePos += dt * V2(0, -200);
 	if(kKeyDown)
-		gameState->players[1].paddlePos += (float)dt * V2(0, 200);
+		gameState->players[1].paddlePos += dt * V2(0, 200);
 
 	makeRectFromCenterPoint(gameState->players[0].paddlePos, gameState->players[0].size, gameState->players[0].vertices);
 	makeRectFromCenterPoint(gameState->players[1].paddlePos, gameState->players[1].size, gameState->players[1].vertices);
@@ -232,9 +232,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	HGLRC renderContext = wglCreateContext(deviceContext);
 	wglMakeCurrent(deviceContext, renderContext);
 
-	//PFNWGLSWAPINTERVALEXTPROC proc = (PFNWGLSWAPINTERVALEXTPROC)wglGetProcAddress("wglSwapIntervalEXT");
-	//if(proc)
-		//proc(-1);
+	PFNWGLSWAPINTERVALEXTPROC proc = (PFNWGLSWAPINTERVALEXTPROC)wglGetProcAddress("wglSwapIntervalEXT");
+	if(proc)
+		proc(-1);
 
 	ShowWindow(hWnd, nCmdShow);
 
@@ -273,7 +273,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		render(&gameMemory, gameState);
 		SwapBuffers(deviceContext);
 
-		LARGE_INTEGER workCounter = getWallClock();
+		/*LARGE_INTEGER workCounter = getWallClock();
 		float workSecondsElapsed = getSecondsElapsed(lastCounter, workCounter);
 		float secondsElapsedForFrame = workSecondsElapsed;
 
@@ -289,7 +289,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		}
 
 		LARGE_INTEGER endCounter = getWallClock();
-		lastCounter = endCounter;
+		lastCounter = endCounter;*/
 	}
 
 	wglDeleteContext(renderContext);
