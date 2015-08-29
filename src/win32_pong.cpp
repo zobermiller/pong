@@ -2,36 +2,31 @@
 #include "pong_math.h"
 #include "win32_pong.h"
 
-bool wKeyDown = false;
-bool sKeyDown = false;
-bool iKeyDown = false;
-bool kKeyDown = false;
+bool keyDown[256];
 s64 globalPerfCountFrequency;
-
-#define HANDMADE_WAY 1
 
 void handleKeyDown(int vkCode) {
 	if(vkCode == VK_ESCAPE)
 		PostQuitMessage(0);
 	if(vkCode == 0x57)
-		wKeyDown = true;
+		keyDown[0x57] = true;
 	if(vkCode == 0x53)
-		sKeyDown = true;
+		keyDown[0x53] = true;
 	if(vkCode == 0x49)
-		iKeyDown = true;
+		keyDown[0x49] = true;
 	if(vkCode == 0x4b)
-		kKeyDown = true;
+		keyDown[0x4b] = true;
 }
 
 void handleKeyUp(int vkCode) {
 	if(vkCode == 0x57)
-		wKeyDown = false;
+		keyDown[0x57] = false;
 	if(vkCode == 0x53)
-		sKeyDown = false;
+		keyDown[0x53] = false;
 	if(vkCode == 0x49)
-		iKeyDown = false;
+		keyDown[0x49] = false;
 	if(vkCode == 0x4b)
-		kKeyDown = false;
+		keyDown[0x4b] = false;
 }
 
 LARGE_INTEGER getWallClock() {
@@ -145,13 +140,13 @@ void update(game_state* gameState, float dt) {
 	gameState->theBall.ballPos += dt * gameState->theBall.velocity;
 	makeRectFromCenterPoint(gameState->theBall.ballPos, gameState->theBall.size, gameState->theBall.vertices);
 
-	if(wKeyDown)
+	if(keyDown[0x57]) // W
 		gameState->players[0].paddlePos += dt * V2(0, -200);
-	if(sKeyDown)
+	if(keyDown[0x53]) // S
 		gameState->players[0].paddlePos += dt * V2(0, 200);
-	if(iKeyDown)
+	if(keyDown[0x49]) // I
 		gameState->players[1].paddlePos += dt * V2(0, -200);
-	if(kKeyDown)
+	if(keyDown[0x4b]) // K
 		gameState->players[1].paddlePos += dt * V2(0, 200);
 
 	makeRectFromCenterPoint(gameState->players[0].paddlePos, gameState->players[0].size, gameState->players[0].vertices);
@@ -259,12 +254,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 	bool running = true;
 	MSG msg;
-#if HANDMADE_WAY
 	LARGE_INTEGER lastCounter = getWallClock();
 	float targetSecondsPerFrame = 1.0f / 60.0f;
-#else
-	int simulationTime = timeGetTime();
-#endif
+
 	while(running) {
 		while(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
 			switch(msg.message) {
@@ -279,7 +271,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 			}
 		}
 
-#if HANDMADE_WAY
 		LARGE_INTEGER workCounter = getWallClock();
 		float workSecondsElapsed = getSecondsElapsed(lastCounter, workCounter);
 		float secondsElapsedForFrame = workSecondsElapsed;
@@ -301,17 +292,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 		LARGE_INTEGER endCounter = getWallClock();
 		lastCounter = endCounter;
-#else
-		int realTime = timeGetTime();
-
-		while(simulationTime < realTime) {
-			simulationTime += 16;
-			update(gameState, 16);
-		}
-
-		render(&gameMemory, gameState);
-		SwapBuffers(deviceContext);
-#endif
 	}
 
 	wglDeleteContext(renderContext);
