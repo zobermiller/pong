@@ -291,13 +291,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		if(secondsElapsedForFrame < targetSecondsPerFrame) {
 			DWORD sleepMS = (DWORD)(1000.0f * (targetSecondsPerFrame - secondsElapsedForFrame));
 			if(sleepMS > 0) {
-				Sleep(sleepMS);
-	}
+				Sleep(0);
+			}
 
 			while(secondsElapsedForFrame < targetSecondsPerFrame) {
 				secondsElapsedForFrame = getSecondsElapsed(lastCounter, getWallClock());
 			}
-}
+		}
 
 		LARGE_INTEGER endCounter = getWallClock();
 		lastCounter = endCounter;
