@@ -8,6 +8,8 @@ bool iKeyDown = false;
 bool kKeyDown = false;
 s64 globalPerfCountFrequency;
 
+#define HANDMADE_WAY 1
+
 void handleKeyDown(int vkCode) {
 	if(vkCode == VK_ESCAPE)
 		PostQuitMessage(0);
@@ -131,6 +133,8 @@ wall collidedWithWall(v2 pos, u32 width, u32 height) {
 }
 
 void update(game_state* gameState, float dt) {
+	if(dt > 10)
+		dt = dt / 1000.0f;
 	wall whichWall = collidedWithWall(gameState->theBall.ballPos, gameState->arenaWidth, gameState->arenaHeight);
 
 	if(whichWall == WALL_LEFT || whichWall == WALL_RIGHT)
@@ -175,6 +179,11 @@ void render(game_memory* gameMemory, game_state* gameState) {
 	glEnd();
 }
 
+void updateAndRender(game_memory* gameMemory, game_state* gameState, s32 msec) {
+	update(gameState, 16);
+	render(gameMemory, gameState);
+}
+
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
 	HWND hWnd;
 	WNDCLASSEX wc;
@@ -183,7 +192,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	QueryPerformanceFrequency(&perfCountFrequencyResult);
 	globalPerfCountFrequency = perfCountFrequencyResult.QuadPart;
 
-	wc ={ 0 };
+	wc = {0};
 	wc.cbSize = sizeof(WNDCLASSEX);
 	wc.style = CS_OWNDC;
 	wc.lpfnWndProc = WndProc;
@@ -205,7 +214,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 												hInstance,
 												NULL);
 
-	PIXELFORMATDESCRIPTOR pfd ={
+	PIXELFORMATDESCRIPTOR pfd = {
 		sizeof(PIXELFORMATDESCRIPTOR),
 		1,
 		PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER,    //Flags
@@ -234,7 +243,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 	PFNWGLSWAPINTERVALEXTPROC proc = (PFNWGLSWAPINTERVALEXTPROC)wglGetProcAddress("wglSwapIntervalEXT");
 	if(proc)
-		proc(-1);
+		proc(0);
 
 	ShowWindow(hWnd, nCmdShow);
 
@@ -248,12 +257,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	initGameState(gameState, SCREEN_WIDTH, SCREEN_HEIGHT, V2(50, SCREEN_HEIGHT / 2), V2(SCREEN_WIDTH - 50, SCREEN_HEIGHT / 2),
 								V2(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2), V2(20, 50), V2(10, 10));
 
-	float targetSecondsPerFrame = 1.0f / 60.0f;
-
 	bool running = true;
 	MSG msg;
+#if HANDMADE_WAY
 	LARGE_INTEGER lastCounter = getWallClock();
-
+	float targetSecondsPerFrame = 1.0f / 60.0f;
+#else
+	int simulationTime = timeGetTime();
+#endif
 	while(running) {
 		while(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
 			switch(msg.message) {
@@ -268,28 +279,39 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 			}
 		}
 
-		update(gameState, targetSecondsPerFrame);
-
-		render(&gameMemory, gameState);
-		SwapBuffers(deviceContext);
-
-		/*LARGE_INTEGER workCounter = getWallClock();
+#if HANDMADE_WAY
+		LARGE_INTEGER workCounter = getWallClock();
 		float workSecondsElapsed = getSecondsElapsed(lastCounter, workCounter);
 		float secondsElapsedForFrame = workSecondsElapsed;
+
+		update(gameState, targetSecondsPerFrame);
+		render(&gameMemory, gameState);
+		SwapBuffers(deviceContext);
 
 		if(secondsElapsedForFrame < targetSecondsPerFrame) {
 			DWORD sleepMS = (DWORD)(1000.0f * (targetSecondsPerFrame - secondsElapsedForFrame));
 			if(sleepMS > 0) {
 				Sleep(sleepMS);
-			}
+	}
 
 			while(secondsElapsedForFrame < targetSecondsPerFrame) {
 				secondsElapsedForFrame = getSecondsElapsed(lastCounter, getWallClock());
 			}
-		}
+}
 
 		LARGE_INTEGER endCounter = getWallClock();
-		lastCounter = endCounter;*/
+		lastCounter = endCounter;
+#else
+		int realTime = timeGetTime();
+
+		while(simulationTime < realTime) {
+			simulationTime += 16;
+			update(gameState, 16);
+		}
+
+		render(&gameMemory, gameState);
+		SwapBuffers(deviceContext);
+#endif
 	}
 
 	wglDeleteContext(renderContext);
