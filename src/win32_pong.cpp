@@ -174,11 +174,6 @@ void render(game_memory* gameMemory, game_state* gameState) {
 	glEnd();
 }
 
-void updateAndRender(game_memory* gameMemory, game_state* gameState, s32 msec) {
-	update(gameState, 16);
-	render(gameMemory, gameState);
-}
-
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
 	HWND hWnd;
 	WNDCLASSEX wc;
