@@ -114,40 +114,62 @@ void initGameState(game_state* gameState, u32 arenaWidth, u32 arenaHeight,
 	gameState->staticVertices[1] = V2(SCREEN_WIDTH / 2, SCREEN_HEIGHT);
 }
 
-wall collidedWithWall(v2 pos, u32 width, u32 height) {
-	if(pos.x < 0)
+wall collidedWithWall(v2 pos, v2 size, u32 width, u32 height) {
+	float xMin = pos.x - 0.5f * size.x;
+	float xMax = pos.x + 0.5f * size.x;
+	float yMin = pos.y - 0.5f * size.y;
+	float yMax = pos.y + 0.5f * size.y;
+
+	if(xMin < 0)
 		return WALL_LEFT;
-	else if(pos.y > height)
+	else if(yMin < 0)
 		return WALL_UP;
-	else if(pos.x > width)
+	else if(xMax > width)
 		return WALL_RIGHT;
-	else if(pos.y < 0)
+	else if(yMax > height)
 		return WALL_DOWN;
 
 	return WALL_NONE;
 }
 
 void update(game_state* gameState, float dt) {
-	if(dt > 10)
-		dt = dt / 1000.0f;
-	wall whichWall = collidedWithWall(gameState->theBall.ballPos, gameState->arenaWidth, gameState->arenaHeight);
+	wall whichWall = collidedWithWall(gameState->theBall.ballPos, gameState->theBall.size, gameState->arenaWidth, gameState->arenaHeight);
 
 	if(whichWall == WALL_LEFT || whichWall == WALL_RIGHT)
 		gameState->theBall.velocity = V2(-gameState->theBall.velocity.x, gameState->theBall.velocity.y);
-	else if(whichWall == WALL_UP || whichWall == WALL_DOWN)
+	if(whichWall == WALL_UP || whichWall == WALL_DOWN)
 		gameState->theBall.velocity = V2(gameState->theBall.velocity.x, -gameState->theBall.velocity.y);
 
 	gameState->theBall.ballPos += dt * gameState->theBall.velocity;
 	makeRectFromCenterPoint(gameState->theBall.ballPos, gameState->theBall.size, gameState->theBall.vertices);
 
+	whichWall = collidedWithWall(gameState->players[0].paddlePos, gameState->players[0].size, gameState->arenaWidth, gameState->arenaHeight);
+	v2 player1VelocityUp = V2(0, -200);
+	v2 player1VelocityDown = V2(0, 200);
+
+	if(whichWall == WALL_UP)
+		player1VelocityUp = V2(0, 0);
+	if(whichWall == WALL_DOWN)
+		player1VelocityDown = V2(0, 0);
+
+	whichWall = collidedWithWall(gameState->players[1].paddlePos, gameState->players[1].size, gameState->arenaWidth, gameState->arenaHeight);
+	v2 player2VelocityUp = V2(0, -200);
+	v2 player2VelocityDown = V2(0, 200);
+
+	if(whichWall == WALL_UP)
+		player2VelocityUp = V2(0, 0);
+	if(whichWall == WALL_DOWN)
+		player2VelocityDown = V2(0, 0);
+
 	if(keyDown[0x57]) // W
-		gameState->players[0].paddlePos += dt * V2(0, -200);
+		gameState->players[0].paddlePos += dt * player1VelocityUp;
 	if(keyDown[0x53]) // S
-		gameState->players[0].paddlePos += dt * V2(0, 200);
+		gameState->players[0].paddlePos += dt * player1VelocityDown;
+
 	if(keyDown[0x49]) // I
-		gameState->players[1].paddlePos += dt * V2(0, -200);
+		gameState->players[1].paddlePos += dt * player2VelocityUp;
 	if(keyDown[0x4b]) // K
-		gameState->players[1].paddlePos += dt * V2(0, 200);
+		gameState->players[1].paddlePos += dt * player2VelocityDown;
 
 	makeRectFromCenterPoint(gameState->players[0].paddlePos, gameState->players[0].size, gameState->players[0].vertices);
 	makeRectFromCenterPoint(gameState->players[1].paddlePos, gameState->players[1].size, gameState->players[1].vertices);
