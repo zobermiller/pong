@@ -98,17 +98,14 @@ void initGameState(game_state* gameState, u32 arenaWidth, u32 arenaHeight,
 	gameState->players[0].paddlePos = player1Pos;
 	gameState->players[0].score = 0;
 	gameState->players[0].size = playerSize;
-	makeRectFromCenterPoint(gameState->players[0].paddlePos, gameState->players[0].size, gameState->players[0].vertices);
 
 	gameState->players[1].paddlePos = player2Pos;
 	gameState->players[1].score = 0;
 	gameState->players[1].size = playerSize;
-	makeRectFromCenterPoint(gameState->players[1].paddlePos, gameState->players[1].size, gameState->players[1].vertices);
 
 	gameState->theBall.ballPos = ballPos;
 	gameState->theBall.size = ballSize;
 	gameState->theBall.velocity = V2(600, 0);
-	makeRectFromCenterPoint(gameState->theBall.ballPos, gameState->theBall.size, gameState->theBall.vertices);
 
 	gameState->staticVertices[0] = V2(SCREEN_WIDTH / 2, 0);
 	gameState->staticVertices[1] = V2(SCREEN_WIDTH / 2, SCREEN_HEIGHT);
@@ -141,7 +138,6 @@ void update(game_state* gameState, float dt) {
 		gameState->theBall.velocity = V2(gameState->theBall.velocity.x, -gameState->theBall.velocity.y);
 
 	gameState->theBall.ballPos += dt * gameState->theBall.velocity;
-	makeRectFromCenterPoint(gameState->theBall.ballPos, gameState->theBall.size, gameState->theBall.vertices);
 
 	whichWall = collidedWithWall(gameState->players[0].paddlePos, gameState->players[0].size, gameState->arenaWidth, gameState->arenaHeight);
 	v2 player1VelocityUp = V2(0, -200);
@@ -171,6 +167,7 @@ void update(game_state* gameState, float dt) {
 	if(keyDown[0x4b]) // K
 		gameState->players[1].paddlePos += dt * player2VelocityDown;
 
+	makeRectFromCenterPoint(gameState->theBall.ballPos, gameState->theBall.size, gameState->theBall.vertices);
 	makeRectFromCenterPoint(gameState->players[0].paddlePos, gameState->players[0].size, gameState->players[0].vertices);
 	makeRectFromCenterPoint(gameState->players[1].paddlePos, gameState->players[1].size, gameState->players[1].vertices);
 }
