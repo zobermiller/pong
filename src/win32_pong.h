@@ -20,18 +20,11 @@ typedef uint64_t u64;
 
 enum wall {
 	WALL_NONE,
+
 	WALL_LEFT,
 	WALL_UP,
 	WALL_RIGHT,
 	WALL_DOWN,
-};
-
-struct offscreen_buffer {
-	void* memory;
-	s32 height;
-	s32 width;
-	s32 bitsPerPixel;
-	s32 pitch;
 };
 
 struct game_memory {

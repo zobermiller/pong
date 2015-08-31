@@ -8,25 +8,13 @@ s64 globalPerfCountFrequency;
 void handleKeyDown(int vkCode) {
 	if(vkCode == VK_ESCAPE)
 		PostQuitMessage(0);
-	if(vkCode == 0x57)
-		keyDown[0x57] = true;
-	if(vkCode == 0x53)
-		keyDown[0x53] = true;
-	if(vkCode == 0x49)
-		keyDown[0x49] = true;
-	if(vkCode == 0x4b)
-		keyDown[0x4b] = true;
+	if(vkCode >= 0x30 || vkCode <= 0x5a)
+		keyDown[vkCode] = true;
 }
 
 void handleKeyUp(int vkCode) {
-	if(vkCode == 0x57)
-		keyDown[0x57] = false;
-	if(vkCode == 0x53)
-		keyDown[0x53] = false;
-	if(vkCode == 0x49)
-		keyDown[0x49] = false;
-	if(vkCode == 0x4b)
-		keyDown[0x4b] = false;
+	if(vkCode >= 0x30 || vkCode <= 0x5a)
+		keyDown[vkCode] = false;
 }
 
 LARGE_INTEGER getWallClock() {
