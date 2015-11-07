@@ -31,11 +31,11 @@ float getSecondsElapsed(LARGE_INTEGER start, LARGE_INTEGER end) {
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
 	switch(message) {
 		case WM_KEYDOWN: {
-			handleKeyDown(wParam);
+			handleKeyDown((int)wParam);
 		} break;
 
 		case WM_KEYUP: {
-			handleKeyUp(wParam);
+			handleKeyUp((int)wParam);
 		} break;
 
 		case WM_DESTROY: {
@@ -298,5 +298,5 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 	wglDeleteContext(renderContext);
 	VirtualFree(gameMemory.storage, 0, MEM_RELEASE);
-	return msg.wParam;
+	return (int)msg.wParam;
 }
