@@ -1,5 +1,4 @@
-#ifndef PRECOMPILED_H
-#define PRECOMPILED_H
+#pragma once
 
 #include <windows.h>
 #include <gl/GL.h>
@@ -8,5 +7,3 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stddef.h>
-
-#endif
