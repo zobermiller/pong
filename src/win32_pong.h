@@ -1,4 +1,5 @@
-#pragma once
+#ifndef WIN32_PONG_H
+#define WIN32_PONG_H
 
 typedef int8_t s8;
 typedef int16_t s16;
@@ -57,3 +58,5 @@ struct game_state {
 
 	v2 staticVertices[2];
 };
+
+#endif

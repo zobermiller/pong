@@ -1,4 +1,5 @@
-#pragma once
+#ifndef PONG_MATH_H
+#define PONG_MATH_H
 
 struct v2 {
 	float x, y;
@@ -51,3 +52,5 @@ inline float inner(v2 a, v2 b) {
 
 	return result;
 }
+
+#endif
