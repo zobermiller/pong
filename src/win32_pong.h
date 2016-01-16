@@ -34,8 +34,8 @@ struct game_memory {
 
 struct player {
 	v2 paddlePos;
-	// Size is (width, height)
-	v2 size;
+	
+	v2 size; // Size is (width, height)
 	u32 score;
 
 	v2 vertices[4];
@@ -43,8 +43,8 @@ struct player {
 
 struct ball {
 	v2 ballPos;
-	// Size is (width, height)
-	v2 size;
+
+	v2 size; // Size is (width, height)
 	v2 velocity;
 
 	v2 vertices[4];
