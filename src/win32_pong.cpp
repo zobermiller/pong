@@ -160,7 +160,7 @@ void update(game_state* gameState, float dt) {
 	makeRectFromCenterPoint(gameState->players[1].paddlePos, gameState->players[1].size, gameState->players[1].vertices);
 }
 
-void render(game_memory* gameMemory, game_state* gameState) {
+void render(game_state* gameState) {
 	glClear(GL_COLOR_BUFFER_BIT);
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
@@ -274,7 +274,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		float secondsElapsedForFrame = workSecondsElapsed;
 
 		update(gameState, targetSecondsPerFrame);
-		render(&gameMemory, gameState);
+		render(gameState);
 		SwapBuffers(deviceContext);
 
 		if(secondsElapsedForFrame < targetSecondsPerFrame) {
