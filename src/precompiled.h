@@ -8,5 +8,6 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stddef.h>
+#include <gl/wglext.h>
 
 #endif

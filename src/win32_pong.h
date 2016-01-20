@@ -18,6 +18,18 @@ typedef uint64_t u64;
 #define SCREEN_WIDTH 800
 #define SCREEN_HEIGHT 600
 
+#define BALL_WIDTH 10
+#define BALL_HEIGHT 10
+#define PLAYER_WIDTH 20
+#define PLAYER_HEIGHT 50
+
+#define PLAYER_DEFAULT_Y SCREEN_HEIGHT / 2
+
+#define BALL_VELOCITY 600
+
+#define BALL_DEFAULT_X SCREEN_WIDTH / 2
+#define BALL_DEFAULT_Y SCREEN_HEIGHT / 2
+
 enum wall {
 	WALL_NONE,
 
