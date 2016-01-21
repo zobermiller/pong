@@ -2,6 +2,12 @@
 #include "pong_math.h"
 #include "win32_pong.h"
 
+#define SDL 1
+
+#if SDL
+#include <SDL.h>
+#endif
+
 bool keyDown[256];
 s64 globalPerfCountFrequency;
 
@@ -206,6 +212,7 @@ void render(game_state* gameState) {
 	glDisable(GL_MULT);
 }
 
+#if !SDL
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
 	WNDCLASSEX wc;
 
@@ -223,7 +230,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 	RegisterClassEx(&wc);
 
-	HWND hWnd = CreateWindowEx(NULL,
+	HWND hWnd = CreateWindowEx(WS_EX_APPWINDOW,
 												"WindowClass",
 												"Pong",
 												WS_OVERLAPPEDWINDOW,// | WS_CAPTION | WS_SYSMENU |
@@ -292,7 +299,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	DestroyWindow(hWnd);
 	hWnd = 0;*/
 
-	hWnd = CreateWindowEx(NULL,
+	hWnd = CreateWindowEx(WS_EX_APPWINDOW,
 												"WindowClass",
 												"Pong",
 												WS_OVERLAPPEDWINDOW,// | WS_CAPTION | WS_SYSMENU |
@@ -330,8 +337,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	if(proc)
 		proc(0);
 
-	//int simTime = 0;
-
 	while(running) {
 		while(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
 			switch(msg.message) {
@@ -350,15 +355,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		float workSecondsElapsed = getSecondsElapsed(lastCounter, workCounter);
 		float secondsElapsedForFrame = workSecondsElapsed;
 
-		//int realTime = GetTickCount();
-		//while(simTime < realTime) {
-		//	simTime += 16;
-			update(gameState, targetSecondsPerFrame);
-	//	}
+		update(gameState, targetSecondsPerFrame);
 		render(gameState);
 		SwapBuffers(deviceContext);
 
-		/*if(secondsElapsedForFrame < targetSecondsPerFrame) {
+		if(secondsElapsedForFrame < targetSecondsPerFrame) {
 			DWORD sleepMS = (DWORD)(1000.0f * (targetSecondsPerFrame - secondsElapsedForFrame));
 			if(sleepMS > 0) {
 				Sleep(0);
@@ -367,7 +368,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 			while(secondsElapsedForFrame < targetSecondsPerFrame) {
 				secondsElapsedForFrame = getSecondsElapsed(lastCounter, getWallClock());
 			}
-		}*/
+		}
 
 		LARGE_INTEGER endCounter = getWallClock();
 		lastCounter = endCounter;
@@ -377,3 +378,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	VirtualFree(gameMemory.storage, 0, MEM_RELEASE);
 	return (int)msg.wParam;
 }
+#endif
+
+int main(int argv, char** argc) {
+	SDL_Init(SDL_INIT_VIDEO);
+	SDL_Window *window = SDL_CreateWindow("Pong", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
+	SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
