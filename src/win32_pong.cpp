@@ -6,6 +6,7 @@
 
 #if SDL
 #include <SDL.h>
+#include <SDL_syswm.h>
 #endif
 
 bool keyDown[256];
@@ -106,6 +107,9 @@ void initGameState(game_state* gameState, u32 arenaWidth, u32 arenaHeight,
 	makeRectFromCenterPoint(gameState->theBall.ballPos, gameState->theBall.size, gameState->theBall.vertices);
 	makeRectFromCenterPoint(gameState->players[0].paddlePos, gameState->players[0].size, gameState->players[0].vertices);
 	makeRectFromCenterPoint(gameState->players[1].paddlePos, gameState->players[1].size, gameState->players[1].vertices);
+
+	for(int i=0; i < 256; i++)
+		keyDown[i] = false;
 }
 
 wall collidedWithWall(v2 pos, v2 size, u32 width, u32 height) {
@@ -154,6 +158,7 @@ void update(game_state* gameState, float dt) {
 	if(whichWall == WALL_DOWN)
 		player2VelocityDown = V2(0, 0);
 
+#if !SDL
 	if(keyDown[0x57]) // W
 		gameState->players[0].paddlePos += dt * player1VelocityUp;
 	if(keyDown[0x53]) // S
@@ -163,9 +168,20 @@ void update(game_state* gameState, float dt) {
 		gameState->players[1].paddlePos += dt * player2VelocityUp;
 	if(keyDown[0x4b]) // K
 		gameState->players[1].paddlePos += dt * player2VelocityDown;
+#else
+	if(keyDown[SDL_SCANCODE_W])
+		gameState->players[0].paddlePos += dt * player1VelocityUp;
+	if(keyDown[SDL_SCANCODE_S])
+		gameState->players[0].paddlePos += dt * player1VelocityDown;
 
+	if(keyDown[SDL_SCANCODE_I])
+		gameState->players[1].paddlePos += dt * player2VelocityUp;
+	if(keyDown[SDL_SCANCODE_K])
+		gameState->players[1].paddlePos += dt * player2VelocityDown;
+#endif
 }
 
+#if !SDL
 void render(game_state* gameState) {
 	glEnable(GL_MULT);
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -212,7 +228,6 @@ void render(game_state* gameState) {
 	glDisable(GL_MULT);
 }
 
-#if !SDL
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
 	WNDCLASSEX wc;
 
@@ -378,17 +393,72 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	VirtualFree(gameMemory.storage, 0, MEM_RELEASE);
 	return (int)msg.wParam;
 }
-#endif
+#else
 
-#if SDL
+void renderSDL(game_state* gameState, SDL_Renderer* renderer) {
+	SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0xFF);
+	SDL_RenderClear(renderer);
+
+	SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
+	SDL_Rect player0Rect = {(int)gameState->players[0].paddlePos.x, (int)gameState->players[0].paddlePos.y, PLAYER_WIDTH, PLAYER_HEIGHT};
+	SDL_Rect player1Rect = {(int)gameState->players[1].paddlePos.x, (int)gameState->players[1].paddlePos.y, PLAYER_WIDTH, PLAYER_HEIGHT};
+	SDL_Rect ballRect = {(int)gameState->theBall.ballPos.x, (int)gameState->theBall.ballPos.y, BALL_WIDTH, BALL_HEIGHT};
+
+	SDL_RenderFillRect(renderer, &player0Rect);
+	SDL_RenderFillRect(renderer, &player1Rect);
+	SDL_RenderFillRect(renderer, &ballRect);
+
+	SDL_RenderDrawLine(renderer, (int)gameState->staticVertices[0].x, (int)gameState->staticVertices[0].y, (int)gameState->staticVertices[1].x, (int)gameState->staticVertices[1].y);
+	
+	SDL_RenderPresent(renderer);
+}
+
+void sdlHandleKeys(const u8* keys, bool* running) {
+	if(keys[SDL_SCANCODE_ESCAPE])
+		*running = false;
+	for(int i=0; i < 256; i++) {
+		if(keys[i])
+			keyDown[i] = true;
+		else
+			keyDown[i] = false;
+	}
+}
+
 int main(int argv, char** argc) {
 	SDL_Init(SDL_INIT_VIDEO);
+	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
 	SDL_Window *window = SDL_CreateWindow("Pong", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
 																				SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
 	SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+	
+	game_memory gameMemory = {};
+	gameMemory.storageSize = megabytes(1);
+	gameMemory.storage = malloc(gameMemory.storageSize);
 
-	SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
-	SDL_RenderClear(renderer);
+	game_state* gameState = (game_state*)gameMemory.storage;
+	initGameState(gameState, SCREEN_WIDTH, SCREEN_HEIGHT, V2(50, PLAYER_DEFAULT_Y), V2(SCREEN_WIDTH - 50, PLAYER_DEFAULT_Y),
+								V2(BALL_DEFAULT_X, BALL_DEFAULT_Y), V2(PLAYER_WIDTH, PLAYER_HEIGHT), V2(BALL_WIDTH, BALL_HEIGHT));
+
+	bool running = true;
+	
+	SDL_Event e;
+	float frameSeconds = 1.0f / 60.0f;
+	while(running) {
+		while(SDL_PollEvent(&e)) {
+			if(e.type == SDL_QUIT)
+				running = false;
+		}
+		const u8* keyEvents = SDL_GetKeyboardState(NULL);
+		sdlHandleKeys(keyEvents, &running);
+
+		update(gameState, frameSeconds);
+		renderSDL(gameState, renderer);
+	}
+
+	free(gameMemory.storage);
+
+	SDL_DestroyRenderer(renderer);
+	SDL_DestroyWindow(window);
 
 	return 0;
 }
