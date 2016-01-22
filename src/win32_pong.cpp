@@ -84,29 +84,31 @@ void makeRectFromCenterPoint(v2 centerPoint, v2 size, v2 vertices[]) {
 }
 
 void initGameState(game_state* gameState, u32 arenaWidth, u32 arenaHeight,
-									 v2 player1Pos, v2 player2Pos, v2 ballPos,
+									 v2 player1Pos, v2 player2Pos, v2 pos,
 									 v2 playerSize, v2 ballSize) {
 	gameState->arenaWidth = arenaWidth;
 	gameState->arenaHeight = arenaHeight;
 
-	gameState->players[0].paddlePos = player1Pos;
+	gameState->players[0].pos = player1Pos;
 	gameState->players[0].score = 0;
 	gameState->players[0].size = playerSize;
 
-	gameState->players[1].paddlePos = player2Pos;
+	gameState->players[1].pos = player2Pos;
 	gameState->players[1].score = 0;
 	gameState->players[1].size = playerSize;
 
-	gameState->theBall.ballPos = ballPos;
-	gameState->theBall.size = ballSize;
-	gameState->theBall.velocity = V2(BALL_VELOCITY, 0);
+	gameState->ball.pos = pos;
+	gameState->ball.size = ballSize;
+	gameState->ball.velocity = V2(0, 0);
 
 	gameState->staticVertices[0] = V2(SCREEN_WIDTH / 2, 0);
 	gameState->staticVertices[1] = V2(SCREEN_WIDTH / 2, SCREEN_HEIGHT);
 
-	makeRectFromCenterPoint(gameState->theBall.ballPos, gameState->theBall.size, gameState->theBall.vertices);
-	makeRectFromCenterPoint(gameState->players[0].paddlePos, gameState->players[0].size, gameState->players[0].vertices);
-	makeRectFromCenterPoint(gameState->players[1].paddlePos, gameState->players[1].size, gameState->players[1].vertices);
+	gameState->programRunning = true;
+
+	makeRectFromCenterPoint(gameState->ball.pos, gameState->ball.size, gameState->ball.vertices);
+	makeRectFromCenterPoint(gameState->players[0].pos, gameState->players[0].size, gameState->players[0].vertices);
+	makeRectFromCenterPoint(gameState->players[1].pos, gameState->players[1].size, gameState->players[1].vertices);
 
 	for(int i=0; i < 256; i++)
 		keyDown[i] = false;
@@ -131,16 +133,16 @@ wall collidedWithWall(v2 pos, v2 size, u32 width, u32 height) {
 }
 
 void update(game_state* gameState, float dt) {
-	wall whichWall = collidedWithWall(gameState->theBall.ballPos, gameState->theBall.size, gameState->arenaWidth, gameState->arenaHeight);
+	wall whichWall = collidedWithWall(gameState->ball.pos, gameState->ball.size, gameState->arenaWidth, gameState->arenaHeight);
 
 	if(whichWall == WALL_LEFT || whichWall == WALL_RIGHT)
-		gameState->theBall.velocity = V2(-gameState->theBall.velocity.x, gameState->theBall.velocity.y);
+		gameState->ball.velocity = V2(-gameState->ball.velocity.x, gameState->ball.velocity.y);
 	if(whichWall == WALL_UP || whichWall == WALL_DOWN)
-		gameState->theBall.velocity = V2(gameState->theBall.velocity.x, -gameState->theBall.velocity.y);
+		gameState->ball.velocity = V2(gameState->ball.velocity.x, -gameState->ball.velocity.y);
 
-	gameState->theBall.ballPos += dt * gameState->theBall.velocity;
+	gameState->ball.pos += dt * gameState->ball.velocity;
 
-	whichWall = collidedWithWall(gameState->players[0].paddlePos, gameState->players[0].size, gameState->arenaWidth, gameState->arenaHeight);
+	whichWall = collidedWithWall(gameState->players[0].pos, gameState->players[0].size, gameState->arenaWidth, gameState->arenaHeight);
 	v2 player1VelocityUp = V2(0, -200);
 	v2 player1VelocityDown = V2(0, 200);
 
@@ -149,7 +151,7 @@ void update(game_state* gameState, float dt) {
 	if(whichWall == WALL_DOWN)
 		player1VelocityDown = V2(0, 0);
 
-	whichWall = collidedWithWall(gameState->players[1].paddlePos, gameState->players[1].size, gameState->arenaWidth, gameState->arenaHeight);
+	whichWall = collidedWithWall(gameState->players[1].pos, gameState->players[1].size, gameState->arenaWidth, gameState->arenaHeight);
 	v2 player2VelocityUp = V2(0, -200);
 	v2 player2VelocityDown = V2(0, 200);
 
@@ -160,24 +162,33 @@ void update(game_state* gameState, float dt) {
 
 #if !SDL
 	if(keyDown[0x57]) // W
-		gameState->players[0].paddlePos += dt * player1VelocityUp;
+		gameState->players[0].pos += dt * player1VelocityUp;
 	if(keyDown[0x53]) // S
-		gameState->players[0].paddlePos += dt * player1VelocityDown;
+		gameState->players[0].pos += dt * player1VelocityDown;
 
 	if(keyDown[0x49]) // I
-		gameState->players[1].paddlePos += dt * player2VelocityUp;
+		gameState->players[1].pos += dt * player2VelocityUp;
 	if(keyDown[0x4b]) // K
-		gameState->players[1].paddlePos += dt * player2VelocityDown;
+		gameState->players[1].pos += dt * player2VelocityDown;
 #else
 	if(keyDown[SDL_SCANCODE_W])
-		gameState->players[0].paddlePos += dt * player1VelocityUp;
+		gameState->players[0].pos += dt * player1VelocityUp;
 	if(keyDown[SDL_SCANCODE_S])
-		gameState->players[0].paddlePos += dt * player1VelocityDown;
+		gameState->players[0].pos += dt * player1VelocityDown;
 
 	if(keyDown[SDL_SCANCODE_I])
-		gameState->players[1].paddlePos += dt * player2VelocityUp;
+		gameState->players[1].pos += dt * player2VelocityUp;
 	if(keyDown[SDL_SCANCODE_K])
-		gameState->players[1].paddlePos += dt * player2VelocityDown;
+		gameState->players[1].pos += dt * player2VelocityDown;
+
+	if(keyDown[SDL_SCANCODE_ESCAPE])
+		gameState->programRunning = false;
+
+	static bool spacePressed = false;
+	if(keyDown[SDL_SCANCODE_SPACE] && spacePressed == false) {
+		gameState->ball.velocity = V2(600.0f, 0.0f);
+		spacePressed = true;
+	}
 #endif
 }
 
@@ -194,11 +205,11 @@ void render(game_state* gameState) {
 	glVertex2f(gameState->staticVertices[1].x, gameState->staticVertices[1].y);
 	glEnd();
 
-	float yOffset_player0 = PLAYER_DEFAULT_Y - gameState->players[0].paddlePos.y;
-	float yOffset_player1 = PLAYER_DEFAULT_Y - gameState->players[1].paddlePos.y;
+	float yOffset_player0 = PLAYER_DEFAULT_Y - gameState->players[0].pos.y;
+	float yOffset_player1 = PLAYER_DEFAULT_Y - gameState->players[1].pos.y;
 
-	float xOffset_ball = BALL_DEFAULT_X - gameState->theBall.ballPos.x;
-	float yOffset_ball = BALL_DEFAULT_Y - gameState->theBall.ballPos.y;
+	float xOffset_ball = BALL_DEFAULT_X - gameState->ball.pos.x;
+	float yOffset_ball = BALL_DEFAULT_Y - gameState->ball.pos.y;
 
 	glPushMatrix();
 	glTranslatef(0.0f, -yOffset_player0, 0.0f);
@@ -220,7 +231,7 @@ void render(game_state* gameState) {
 	glTranslatef(-xOffset_ball, -yOffset_ball, 0.0f);
 	glBegin(GL_QUADS);
 	for(int i=0; i < 4; i++)
-		glVertex2f(gameState->theBall.vertices[i].x, gameState->theBall.vertices[i].y);
+		glVertex2f(gameState->ball.vertices[i].x, gameState->ball.vertices[i].y);
 	glEnd();
 	glPopMatrix();
 
@@ -400,9 +411,18 @@ void renderSDL(game_state* gameState, SDL_Renderer* renderer) {
 	SDL_RenderClear(renderer);
 
 	SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
-	SDL_Rect player0Rect = {(int)gameState->players[0].paddlePos.x, (int)gameState->players[0].paddlePos.y, PLAYER_WIDTH, PLAYER_HEIGHT};
-	SDL_Rect player1Rect = {(int)gameState->players[1].paddlePos.x, (int)gameState->players[1].paddlePos.y, PLAYER_WIDTH, PLAYER_HEIGHT};
-	SDL_Rect ballRect = {(int)gameState->theBall.ballPos.x, (int)gameState->theBall.ballPos.y, BALL_WIDTH, BALL_HEIGHT};
+
+	s32 player0X = (s32)(gameState->players[0].pos.x - (PLAYER_WIDTH / 2));
+	s32 player0Y = (s32)(gameState->players[0].pos.y - (PLAYER_HEIGHT /2));
+	s32 player1X = (s32)(gameState->players[1].pos.x - (PLAYER_WIDTH / 2));
+	s32 player1Y = (s32)(gameState->players[1].pos.y - (PLAYER_HEIGHT / 2));
+
+	s32 ballX = (s32)(gameState->ball.pos.x - (BALL_WIDTH / 2));
+	s32 ballY = (s32)(gameState->ball.pos.y - (BALL_HEIGHT /2));
+	
+	SDL_Rect player0Rect = {player0X, player0Y, PLAYER_WIDTH, PLAYER_HEIGHT};
+	SDL_Rect player1Rect = {player1X, player1Y, PLAYER_WIDTH, PLAYER_HEIGHT};
+	SDL_Rect ballRect = {ballX, ballY, BALL_WIDTH, BALL_HEIGHT};
 
 	SDL_RenderFillRect(renderer, &player0Rect);
 	SDL_RenderFillRect(renderer, &player1Rect);
@@ -413,9 +433,7 @@ void renderSDL(game_state* gameState, SDL_Renderer* renderer) {
 	SDL_RenderPresent(renderer);
 }
 
-void sdlHandleKeys(const u8* keys, bool* running) {
-	if(keys[SDL_SCANCODE_ESCAPE])
-		*running = false;
+void sdlHandleKeys(const u8* keys) {
 	for(int i=0; i < 256; i++) {
 		if(keys[i])
 			keyDown[i] = true;
@@ -439,17 +457,15 @@ int main(int argv, char** argc) {
 	initGameState(gameState, SCREEN_WIDTH, SCREEN_HEIGHT, V2(50, PLAYER_DEFAULT_Y), V2(SCREEN_WIDTH - 50, PLAYER_DEFAULT_Y),
 								V2(BALL_DEFAULT_X, BALL_DEFAULT_Y), V2(PLAYER_WIDTH, PLAYER_HEIGHT), V2(BALL_WIDTH, BALL_HEIGHT));
 
-	bool running = true;
-	
 	SDL_Event e;
 	float frameSeconds = 1.0f / 60.0f;
-	while(running) {
-		while(SDL_PollEvent(&e)) {
+	while(gameState->programRunning) {
+		if(SDL_PollEvent(&e)) {
 			if(e.type == SDL_QUIT)
-				running = false;
+				gameState->programRunning = false;
 		}
 		const u8* keyEvents = SDL_GetKeyboardState(NULL);
-		sdlHandleKeys(keyEvents, &running);
+		sdlHandleKeys(keyEvents);
 
 		update(gameState, frameSeconds);
 		renderSDL(gameState, renderer);

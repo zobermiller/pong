@@ -45,7 +45,7 @@ struct game_memory {
 };
 
 struct player {
-	v2 paddlePos;
+	v2 pos;
 	
 	v2 size; // Size is (width, height)
 	u32 score;
@@ -54,7 +54,7 @@ struct player {
 };
 
 struct ball {
-	v2 ballPos;
+	v2 pos;
 
 	v2 size; // Size is (width, height)
 	v2 velocity;
@@ -64,11 +64,13 @@ struct ball {
 
 struct game_state {
 	player players[2];
-	ball theBall;
+	ball ball;
 
 	u32 arenaWidth, arenaHeight;
 
 	v2 staticVertices[2];
+
+	bool programRunning;
 };
 
 #endif
