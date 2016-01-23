@@ -7,6 +7,7 @@
 #if SDL
 #include <SDL.h>
 #include <SDL_syswm.h>
+#include <SDL_ttf.h>
 #endif
 
 bool keyDown[256];
@@ -101,8 +102,8 @@ void initGameState(game_state* gameState, u32 arenaWidth, u32 arenaHeight,
 	gameState->ball.size = ballSize;
 	gameState->ball.velocity = V2(0, 0);
 
-	gameState->staticVertices[0] = V2(SCREEN_WIDTH / 2, 0);
-	gameState->staticVertices[1] = V2(SCREEN_WIDTH / 2, SCREEN_HEIGHT);
+	gameState->centerLine[0] = V2(SCREEN_WIDTH / 2, 0);
+	gameState->centerLine[1] = V2(SCREEN_WIDTH / 2, SCREEN_HEIGHT);
 
 	gameState->programRunning = true;
 
@@ -201,8 +202,8 @@ void render(game_state* gameState) {
 
 	glColor3f(1.0f, 1.0f, 1.0f);
 	glBegin(GL_LINES);
-	glVertex2f(gameState->staticVertices[0].x, gameState->staticVertices[0].y);
-	glVertex2f(gameState->staticVertices[1].x, gameState->staticVertices[1].y);
+	glVertex2f(gameState->centerLine[0].x, gameState->centerLine[0].y);
+	glVertex2f(gameState->centerLine[1].x, gameState->centerLine[1].y);
 	glEnd();
 
 	float yOffset_player0 = PLAYER_DEFAULT_Y - gameState->players[0].pos.y;
@@ -428,7 +429,7 @@ void renderSDL(game_state* gameState, SDL_Renderer* renderer) {
 	SDL_RenderFillRect(renderer, &player1Rect);
 	SDL_RenderFillRect(renderer, &ballRect);
 
-	SDL_RenderDrawLine(renderer, (int)gameState->staticVertices[0].x, (int)gameState->staticVertices[0].y, (int)gameState->staticVertices[1].x, (int)gameState->staticVertices[1].y);
+	SDL_RenderDrawLine(renderer, (int)gameState->centerLine[0].x, (int)gameState->centerLine[0].y, (int)gameState->centerLine[1].x, (int)gameState->centerLine[1].y);
 	
 	SDL_RenderPresent(renderer);
 }
@@ -448,6 +449,7 @@ int main(int argv, char** argc) {
 	SDL_Window *window = SDL_CreateWindow("Pong", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
 																				SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
 	SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+	TTF_Init();
 	
 	game_memory gameMemory = {};
 	gameMemory.storageSize = megabytes(1);
@@ -473,6 +475,7 @@ int main(int argv, char** argc) {
 
 	free(gameMemory.storage);
 
+	TTF_Quit();
 	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(window);
 

@@ -68,7 +68,7 @@ struct game_state {
 
 	u32 arenaWidth, arenaHeight;
 
-	v2 staticVertices[2];
+	v2 centerLine[2];
 
 	bool programRunning;
 };
