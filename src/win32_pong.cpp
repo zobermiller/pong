@@ -413,13 +413,13 @@ void renderSDL(game_state* gameState, SDL_Renderer* renderer) {
 
 	SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
 
-	s32 player0X = (s32)(gameState->players[0].pos.x - (PLAYER_WIDTH / 2));
-	s32 player0Y = (s32)(gameState->players[0].pos.y - (PLAYER_HEIGHT /2));
-	s32 player1X = (s32)(gameState->players[1].pos.x - (PLAYER_WIDTH / 2));
-	s32 player1Y = (s32)(gameState->players[1].pos.y - (PLAYER_HEIGHT / 2));
+	s32 player0X = (s32)round(gameState->players[0].pos.x - (PLAYER_WIDTH / 2));
+	s32 player0Y = (s32)round(gameState->players[0].pos.y - (PLAYER_HEIGHT /2));
+	s32 player1X = (s32)round(gameState->players[1].pos.x - (PLAYER_WIDTH / 2));
+	s32 player1Y = (s32)round(gameState->players[1].pos.y - (PLAYER_HEIGHT / 2));
 
-	s32 ballX = (s32)(gameState->ball.pos.x - (BALL_WIDTH / 2));
-	s32 ballY = (s32)(gameState->ball.pos.y - (BALL_HEIGHT /2));
+	s32 ballX = (s32)round(gameState->ball.pos.x - (BALL_WIDTH / 2));
+	s32 ballY = (s32)round(gameState->ball.pos.y - (BALL_HEIGHT /2));
 	
 	SDL_Rect player0Rect = {player0X, player0Y, PLAYER_WIDTH, PLAYER_HEIGHT};
 	SDL_Rect player1Rect = {player1X, player1Y, PLAYER_WIDTH, PLAYER_HEIGHT};
@@ -453,7 +453,7 @@ int main(int argv, char** argc) {
 	
 	game_memory gameMemory = {};
 	gameMemory.storageSize = megabytes(1);
-	gameMemory.storage = malloc(gameMemory.storageSize);
+	gameMemory.storage = VirtualAlloc(0, (size_t)gameMemory.storageSize, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
 
 	game_state* gameState = (game_state*)gameMemory.storage;
 	initGameState(gameState, SCREEN_WIDTH, SCREEN_HEIGHT, V2(50, PLAYER_DEFAULT_Y), V2(SCREEN_WIDTH - 50, PLAYER_DEFAULT_Y),
@@ -473,7 +473,7 @@ int main(int argv, char** argc) {
 		renderSDL(gameState, renderer);
 	}
 
-	free(gameMemory.storage);
+	VirtualFree(gameMemory.storage, 0, MEM_RELEASE);
 
 	TTF_Quit();
 	SDL_DestroyRenderer(renderer);

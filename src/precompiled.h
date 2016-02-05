@@ -9,5 +9,6 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <gl/wglext.h>
+#include <cmath>
 
 #endif
