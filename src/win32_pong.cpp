@@ -443,7 +443,7 @@ void sdlHandleKeys(const u8* keys) {
 	}
 }
 
-int main(int argv, char** argc) {
+int main(int argc, char** argv) {
 	SDL_Init(SDL_INIT_VIDEO);
 	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
 	SDL_Window *window = SDL_CreateWindow("Pong", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
