@@ -171,6 +171,12 @@ void update(game_state* gameState, float dt) {
 		gameState->players[1].pos += dt * player2VelocityUp;
 	if(keyDown[0x4b]) // K
 		gameState->players[1].pos += dt * player2VelocityDown;
+
+	static bool spacePressed = false;
+	if(keyDown[VK_SPACE] && spacePressed == false) {
+		gameState->ball.velocity = BALL_INITIAL_VELOCITY;
+		spacePressed = true;
+	}
 #else
 	if(keyDown[SDL_SCANCODE_W])
 		gameState->players[0].pos += dt * player1VelocityUp;
@@ -187,7 +193,7 @@ void update(game_state* gameState, float dt) {
 
 	static bool spacePressed = false;
 	if(keyDown[SDL_SCANCODE_SPACE] && spacePressed == false) {
-		gameState->ball.velocity = V2(600.0f, 0.0f);
+		gameState->ball.velocity = BALL_INITIAL_VELOCITY;
 		spacePressed = true;
 	}
 #endif
