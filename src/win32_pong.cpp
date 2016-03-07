@@ -3,11 +3,14 @@
 #include "win32_pong.h"
 
 #define SDL 1
+#define VSYNC 1
 
 #if SDL
 #include <SDL.h>
 #include <SDL_syswm.h>
 #include <SDL_ttf.h>
+#else
+#define WIN32_LEAN_AND_MEAN
 #endif
 
 bool keyDown[256];
@@ -57,6 +60,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 }
 
 bool initGL() {
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 	glOrtho(0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, -1.0f);
@@ -367,8 +372,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	float targetSecondsPerFrame = 1.0f / 60.0f;
 
 	PFNWGLSWAPINTERVALEXTPROC proc = (PFNWGLSWAPINTERVALEXTPROC)wglGetProcAddress("wglSwapIntervalEXT");
-	if(proc)
-		proc(0);
+#if VSYNC
+	proc(1);
+#else
+	proc(0);
+#endif
 
 	while(running) {
 		while(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
@@ -388,6 +396,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		float workSecondsElapsed = getSecondsElapsed(lastCounter, workCounter);
 		float secondsElapsedForFrame = workSecondsElapsed;
 
+#if VSYNC
+		update(gameState, targetSecondsPerFrame);
+		render(gameState);
+		SwapBuffers(deviceContext);
+#else
 		update(gameState, targetSecondsPerFrame);
 		render(gameState);
 		SwapBuffers(deviceContext);
@@ -405,6 +418,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 		LARGE_INTEGER endCounter = getWallClock();
 		lastCounter = endCounter;
+#endif
 	}
 
 	wglDeleteContext(renderContext);
@@ -454,7 +468,11 @@ int main(int argc, char** argv) {
 	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
 	SDL_Window *window = SDL_CreateWindow("Pong", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
 																				SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
-	SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+#if VSYNC
+	SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_PRESENTVSYNC);
+#else
+	SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, 0);
+#endif
 	TTF_Init();
 	
 	game_memory gameMemory = {};
@@ -465,8 +483,14 @@ int main(int argc, char** argv) {
 	initGameState(gameState, SCREEN_WIDTH, SCREEN_HEIGHT, V2(50, PLAYER_DEFAULT_Y), V2(SCREEN_WIDTH - 50, PLAYER_DEFAULT_Y),
 								V2(BALL_DEFAULT_X, BALL_DEFAULT_Y), V2(PLAYER_WIDTH, PLAYER_HEIGHT), V2(BALL_WIDTH, BALL_HEIGHT));
 
+	LARGE_INTEGER perfCountFrequencyResult;
+	QueryPerformanceFrequency(&perfCountFrequencyResult);
+	globalPerfCountFrequency = perfCountFrequencyResult.QuadPart;
+
 	SDL_Event e;
-	float frameSeconds = 1.0f / 60.0f;
+	float targetFrameSeconds = 1.0f / 60.0f;
+	LARGE_INTEGER lastCounter = getWallClock();
+
 	while(gameState->programRunning) {
 		if(SDL_PollEvent(&e)) {
 			if(e.type == SDL_QUIT)
@@ -474,9 +498,27 @@ int main(int argc, char** argv) {
 		}
 		const u8* keyEvents = SDL_GetKeyboardState(NULL);
 		sdlHandleKeys(keyEvents);
-
-		update(gameState, frameSeconds);
+#if VSYNC
+		update(gameState, targetFrameSeconds);
 		renderSDL(gameState, renderer);
+#else
+		LARGE_INTEGER workCounter = getWallClock();
+		float workSecondsElapsed = getSecondsElapsed(lastCounter, workCounter);
+		float secondsElapsedForFrame = workSecondsElapsed;
+
+		update(gameState, targetFrameSeconds);
+		renderSDL(gameState, renderer);
+
+		if(secondsElapsedForFrame < targetFrameSeconds) {
+			while(secondsElapsedForFrame < targetFrameSeconds) {
+				char output[200];
+				sprintf_s(output, "Seconds elapsed is %f\n", secondsElapsedForFrame);
+				OutputDebugString(output);
+				secondsElapsedForFrame = getSecondsElapsed(lastCounter, getWallClock());
+			}
+		}
+		lastCounter = getWallClock();
+#endif
 	}
 
 	VirtualFree(gameMemory.storage, 0, MEM_RELEASE);
