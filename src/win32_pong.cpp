@@ -2,7 +2,7 @@
 #include "pong_math.h"
 #include "win32_pong.h"
 
-#define SDL 1
+#define SDL 0
 #define VSYNC 1
 
 #if SDL
@@ -206,7 +206,6 @@ void update(game_state* gameState, float dt) {
 
 #if !SDL
 void render(game_state* gameState) {
-	glEnable(GL_MULT);
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glLoadIdentity();
@@ -248,7 +247,6 @@ void render(game_state* gameState) {
 	glPopMatrix();
 
 	glFlush();
-	glDisable(GL_MULT);
 }
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
@@ -307,52 +305,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	HGLRC renderContext = wglCreateContext(deviceContext);
 	wglMakeCurrent(deviceContext, renderContext);
 
-	PROC wglGetExtString = wglGetProcAddress("wglGetExtensionsStringARB");
-	PFNWGLCHOOSEPIXELFORMATARBPROC wglChoose = (PFNWGLCHOOSEPIXELFORMATARBPROC)wglGetProcAddress("wglChoosePixelFormatARB");
-
-	int iAttributes[] = {
-		WGL_DRAW_TO_WINDOW_ARB, GL_TRUE,
-		WGL_SUPPORT_OPENGL_ARB, GL_TRUE,
-		WGL_ACCELERATION_ARB, WGL_FULL_ACCELERATION_ARB,
-		WGL_COLOR_BITS_ARB, 24,
-		WGL_ALPHA_BITS_ARB, 8,
-		WGL_DEPTH_BITS_ARB, 16,
-		WGL_STENCIL_BITS_ARB, 0,
-		WGL_DOUBLE_BUFFER_ARB, GL_TRUE,
-		WGL_SAMPLE_BUFFERS_ARB, GL_TRUE,
-		WGL_SAMPLES_ARB, 4,
-		0, 0
-	};
-	float fAttributes[] = {0, 0};
-	int format;
-	u32 numFormats;
-
-	int valid = wglChoose(deviceContext, iAttributes, fAttributes, 1, &format, &numFormats);
-
-	/*wglMakeCurrent(deviceContext, 0);
-	wglDeleteContext(renderContext);
-	renderContext = 0;
-	ReleaseDC(hWnd, deviceContext);
-	deviceContext = 0;
-	DestroyWindow(hWnd);
-	hWnd = 0;*/
-
-	hWnd = CreateWindowEx(WS_EX_APPWINDOW,
-												"WindowClass",
-												"Pong",
-												WS_OVERLAPPEDWINDOW,// | WS_CAPTION | WS_SYSMENU |
-												//WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_VISIBLE,
-												0, 0,
-												SCREEN_WIDTH, SCREEN_HEIGHT,
-												NULL,
-												NULL,
-												hInstance,
-												NULL);
-	deviceContext = GetDC(hWnd);
-	SetPixelFormat(deviceContext, format, &pfd);
-	renderContext = wglCreateContext(deviceContext);
-	wglMakeCurrent(deviceContext, renderContext);
-
 	ShowWindow(hWnd, nCmdShow);
 
 	game_memory gameMemory = {};
@@ -377,7 +329,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 #else
 	proc(0);
 #endif
-
 	while(running) {
 		while(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
 			switch(msg.message) {
@@ -391,16 +342,15 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 				} break;
 			}
 		}
-
-		LARGE_INTEGER workCounter = getWallClock();
-		float workSecondsElapsed = getSecondsElapsed(lastCounter, workCounter);
-		float secondsElapsedForFrame = workSecondsElapsed;
-
 #if VSYNC
 		update(gameState, targetSecondsPerFrame);
 		render(gameState);
 		SwapBuffers(deviceContext);
 #else
+		LARGE_INTEGER workCounter = getWallClock();
+		float workSecondsElapsed = getSecondsElapsed(lastCounter, workCounter);
+		float secondsElapsedForFrame = workSecondsElapsed;
+
 		update(gameState, targetSecondsPerFrame);
 		render(gameState);
 		SwapBuffers(deviceContext);
