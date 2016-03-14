@@ -3,7 +3,7 @@
 #include "win32_pong.h"
 
 #define SDL 0
-#define VSYNC 1
+#define VSYNC 0
 
 #if SDL
 #include <SDL.h>
@@ -28,14 +28,14 @@ void handleKeyUp(int vkCode) {
 		keyDown[vkCode] = false;
 }
 
-LARGE_INTEGER getWallClock() {
+inline LARGE_INTEGER getWallClock() {
 	LARGE_INTEGER result;
 	QueryPerformanceCounter(&result);
 	return result;
 }
 
-float getSecondsElapsed(LARGE_INTEGER start, LARGE_INTEGER end) {
-	float result = ((float)(end.QuadPart - start.QuadPart) / (float)globalPerfCountFrequency);
+inline s64 getMicrosecondsElapsed(LARGE_INTEGER start, LARGE_INTEGER end) {
+	s64 result = (((end.QuadPart - start.QuadPart) * 1000000) / globalPerfCountFrequency);
 	return result;
 }
 
@@ -138,7 +138,8 @@ wall collidedWithWall(v2 pos, v2 size, u32 width, u32 height) {
 	return WALL_NONE;
 }
 
-void update(game_state* gameState, float dt) {
+void update(game_state* gameState, s64 microsecondsPerFrame) {
+	float dt = microsecondsPerFrame / 1000000.0f;
 	wall whichWall = collidedWithWall(gameState->ball.pos, gameState->ball.size, gameState->arenaWidth, gameState->arenaHeight);
 
 	if(whichWall == WALL_LEFT || whichWall == WALL_RIGHT)
@@ -250,11 +251,14 @@ void render(game_state* gameState) {
 }
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
-	WNDCLASSEX wc;
-
 	LARGE_INTEGER perfCountFrequencyResult;
 	QueryPerformanceFrequency(&perfCountFrequencyResult);
 	globalPerfCountFrequency = perfCountFrequencyResult.QuadPart;
+
+	UINT DesiredSchedulerMS = 1;
+	bool SleepIsGranular = (timeBeginPeriod(DesiredSchedulerMS) == TIMERR_NOERROR);
+
+	WNDCLASSEX wc;
 
 	wc = {0};
 	wc.cbSize = sizeof(WNDCLASSEX);
@@ -320,8 +324,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 	bool running = true;
 	MSG msg;
-	LARGE_INTEGER lastCounter = getWallClock();
-	float targetSecondsPerFrame = 1.0f / 60.0f;
+	LARGE_INTEGER endCounter = getWallClock();
+	s32 targetMillisecondsPerFrame = 16;
+	s32 targetMicrosecondsPerFrame = 16666;
 
 	PFNWGLSWAPINTERVALEXTPROC proc = (PFNWGLSWAPINTERVALEXTPROC)wglGetProcAddress("wglSwapIntervalEXT");
 #if VSYNC
@@ -343,31 +348,29 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 			}
 		}
 #if VSYNC
-		update(gameState, targetSecondsPerFrame);
+		update(gameState, targetMicrosecondsPerFrame);
 		render(gameState);
 		SwapBuffers(deviceContext);
 #else
 		LARGE_INTEGER workCounter = getWallClock();
-		float workSecondsElapsed = getSecondsElapsed(lastCounter, workCounter);
-		float secondsElapsedForFrame = workSecondsElapsed;
+		s64 microsecondsElapsed = getMicrosecondsElapsed(endCounter, workCounter);
 
-		update(gameState, targetSecondsPerFrame);
+		update(gameState, microsecondsElapsed);
 		render(gameState);
 		SwapBuffers(deviceContext);
 
-		if(secondsElapsedForFrame < targetSecondsPerFrame) {
-			DWORD sleepMS = (DWORD)(1000.0f * (targetSecondsPerFrame - secondsElapsedForFrame));
+		//if(microsecondsElapsed < targetMicrosecondsPerFrame) {
+			/*DWORD sleepMS = (DWORD)(1000 * (targetSecondsPerFrame - microsecondsElapsed));
 			if(sleepMS > 0) {
 				Sleep(0);
-			}
+			}*/
 
-			while(secondsElapsedForFrame < targetSecondsPerFrame) {
-				secondsElapsedForFrame = getSecondsElapsed(lastCounter, getWallClock());
-			}
-		}
+			/*while(microsecondsElapsed < targetMicrosecondsPerFrame) {
+				microsecondsElapsed = getMicrosecondsElapsed(endCounter, getWallClock());
+			}*/
+		//}
 
-		LARGE_INTEGER endCounter = getWallClock();
-		lastCounter = endCounter;
+		endCounter = workCounter;
 #endif
 	}
 
@@ -399,8 +402,19 @@ void renderSDL(game_state* gameState, SDL_Renderer* renderer) {
 	SDL_RenderFillRect(renderer, &player1Rect);
 	SDL_RenderFillRect(renderer, &ballRect);
 
-	SDL_RenderDrawLine(renderer, (int)gameState->centerLine[0].x, (int)gameState->centerLine[0].y, (int)gameState->centerLine[1].x, (int)gameState->centerLine[1].y);
-	
+	SDL_RenderDrawLine(renderer, (s32)gameState->centerLine[0].x, (s32)gameState->centerLine[0].y, (s32)gameState->centerLine[1].x, (s32)gameState->centerLine[1].y);
+
+	static s32 charges = 5000;
+	if(charges == 0) {
+		char buffer[200];
+		sprintf_s(buffer, "P: (%f, %f)\n", gameState->ball.pos.x, gameState->ball.pos.y);
+		OutputDebugString(buffer);
+		charges = 5000;
+	}
+	else {
+		charges--;
+	}
+
 	SDL_RenderPresent(renderer);
 }
 
@@ -438,7 +452,7 @@ int main(int argc, char** argv) {
 	globalPerfCountFrequency = perfCountFrequencyResult.QuadPart;
 
 	SDL_Event e;
-	float targetFrameSeconds = 1.0f / 60.0f;
+	s64 targetMicrosecondsPerFrame = 16666;
 	LARGE_INTEGER lastCounter = getWallClock();
 
 	while(gameState->programRunning) {
@@ -449,25 +463,16 @@ int main(int argc, char** argv) {
 		const u8* keyEvents = SDL_GetKeyboardState(NULL);
 		sdlHandleKeys(keyEvents);
 #if VSYNC
-		update(gameState, targetFrameSeconds);
+		update(gameState, targetMicrosecondsPerFrame);
 		renderSDL(gameState, renderer);
 #else
 		LARGE_INTEGER workCounter = getWallClock();
-		float workSecondsElapsed = getSecondsElapsed(lastCounter, workCounter);
-		float secondsElapsedForFrame = workSecondsElapsed;
+		s64 microsecondsElapsed = getMicrosecondsElapsed(lastCounter, workCounter);
 
-		update(gameState, targetFrameSeconds);
+		update(gameState, microsecondsElapsed);
 		renderSDL(gameState, renderer);
 
-		if(secondsElapsedForFrame < targetFrameSeconds) {
-			while(secondsElapsedForFrame < targetFrameSeconds) {
-				char output[200];
-				sprintf_s(output, "Seconds elapsed is %f\n", secondsElapsedForFrame);
-				OutputDebugString(output);
-				secondsElapsedForFrame = getSecondsElapsed(lastCounter, getWallClock());
-			}
-		}
-		lastCounter = getWallClock();
+		lastCounter = workCounter;
 #endif
 	}
 
