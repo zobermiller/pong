@@ -80,13 +80,13 @@ bool initGL() {
 
 void makeRectFromCenterPoint(v2 centerPoint, v2 size, v2 vertices[]) {
 	vertices[0] = V2(centerPoint.x - 0.5f * size.x,
-									 centerPoint.y - 0.5f * size.y);
+	                 centerPoint.y - 0.5f * size.y);
 	vertices[1] = V2(centerPoint.x + 0.5f * size.x,
-									 centerPoint.y - 0.5f * size.y);
+	                 centerPoint.y - 0.5f * size.y);
 	vertices[2] = V2(centerPoint.x + 0.5f * size.x,
-									 centerPoint.y + 0.5f * size.y);
+	                 centerPoint.y + 0.5f * size.y);
 	vertices[3] = V2(centerPoint.x - 0.5f * size.x,
-									 centerPoint.y + 0.5f * size.y);
+	                 centerPoint.y + 0.5f * size.y);
 }
 
 void initGameState(game_state* gameState, u32 arenaWidth, u32 arenaHeight,
@@ -255,8 +255,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	QueryPerformanceFrequency(&perfCountFrequencyResult);
 	globalPerfCountFrequency = perfCountFrequencyResult.QuadPart;
 
-	UINT DesiredSchedulerMS = 1;
-	bool SleepIsGranular = (timeBeginPeriod(DesiredSchedulerMS) == TIMERR_NOERROR);
+	UINT desiredSchedulerMS = 1;
+	bool sleepIsGranular = (timeBeginPeriod(desiredSchedulerMS) == TIMERR_NOERROR);
 
 	WNDCLASSEX wc;
 
@@ -271,16 +271,15 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	RegisterClassEx(&wc);
 
 	HWND hWnd = CreateWindowEx(WS_EX_APPWINDOW,
-												"WindowClass",
-												"Pong",
-												WS_OVERLAPPEDWINDOW,// | WS_CAPTION | WS_SYSMENU |
-												//WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_VISIBLE,
-												0, 0,
-												SCREEN_WIDTH, SCREEN_HEIGHT,
-												NULL,
-												NULL,
-												hInstance,
-												NULL);
+	                           "WindowClass",
+	                           "Pong",
+	                           WS_OVERLAPPEDWINDOW,
+	                           0, 0,
+	                           SCREEN_WIDTH, SCREEN_HEIGHT,
+	                           NULL,
+	                           NULL,
+	                           hInstance,
+	                           NULL);
 
 	PIXELFORMATDESCRIPTOR pfd = {
 		sizeof(PIXELFORMATDESCRIPTOR),
@@ -319,7 +318,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 	initGL();
 	initGameState(gameState, SCREEN_WIDTH, SCREEN_HEIGHT, V2(50, PLAYER_DEFAULT_Y), V2(SCREEN_WIDTH - 50, PLAYER_DEFAULT_Y),
-								V2(BALL_DEFAULT_X, BALL_DEFAULT_Y), V2(PLAYER_WIDTH, PLAYER_HEIGHT), V2(BALL_WIDTH, BALL_HEIGHT));
+	              V2(BALL_DEFAULT_X, BALL_DEFAULT_Y), V2(PLAYER_WIDTH, PLAYER_HEIGHT), V2(BALL_WIDTH, BALL_HEIGHT));
 
 
 	bool running = true;
@@ -359,18 +358,18 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		render(gameState);
 		SwapBuffers(deviceContext);
 
-		//if(microsecondsElapsed < targetMicrosecondsPerFrame) {
-			/*DWORD sleepMS = (DWORD)(1000 * (targetSecondsPerFrame - microsecondsElapsed));
+		/*if(microsecondsElapsed < targetMicrosecondsPerFrame) {
+			DWORD sleepMS = (DWORD)(1000 * (targetSecondsPerFrame - microsecondsElapsed));
 			if(sleepMS > 0) {
 				Sleep(0);
-			}*/
+			}
 
-			/*while(microsecondsElapsed < targetMicrosecondsPerFrame) {
+			while(microsecondsElapsed < targetMicrosecondsPerFrame) {
 				microsecondsElapsed = getMicrosecondsElapsed(endCounter, getWallClock());
-			}*/
-		//}
+			}
+		}
 
-		endCounter = workCounter;
+		endCounter = workCounter;*/
 #endif
 	}
 
@@ -393,7 +392,7 @@ void renderSDL(game_state* gameState, SDL_Renderer* renderer) {
 
 	s32 ballX = (s32)round(gameState->ball.pos.x - (BALL_WIDTH / 2));
 	s32 ballY = (s32)round(gameState->ball.pos.y - (BALL_HEIGHT /2));
-	
+
 	SDL_Rect player0Rect = {player0X, player0Y, PLAYER_WIDTH, PLAYER_HEIGHT};
 	SDL_Rect player1Rect = {player1X, player1Y, PLAYER_WIDTH, PLAYER_HEIGHT};
 	SDL_Rect ballRect = {ballX, ballY, BALL_WIDTH, BALL_HEIGHT};
@@ -431,21 +430,21 @@ int main(int argc, char** argv) {
 	SDL_Init(SDL_INIT_VIDEO);
 	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
 	SDL_Window *window = SDL_CreateWindow("Pong", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-																				SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
+	                                      SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
 #if VSYNC
 	SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_PRESENTVSYNC);
 #else
 	SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, 0);
 #endif
 	TTF_Init();
-	
+
 	game_memory gameMemory = {};
 	gameMemory.storageSize = megabytes(1);
 	gameMemory.storage = VirtualAlloc(0, (size_t)gameMemory.storageSize, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
 
 	game_state* gameState = (game_state*)gameMemory.storage;
 	initGameState(gameState, SCREEN_WIDTH, SCREEN_HEIGHT, V2(50, PLAYER_DEFAULT_Y), V2(SCREEN_WIDTH - 50, PLAYER_DEFAULT_Y),
-								V2(BALL_DEFAULT_X, BALL_DEFAULT_Y), V2(PLAYER_WIDTH, PLAYER_HEIGHT), V2(BALL_WIDTH, BALL_HEIGHT));
+	              V2(BALL_DEFAULT_X, BALL_DEFAULT_Y), V2(PLAYER_WIDTH, PLAYER_HEIGHT), V2(BALL_WIDTH, BALL_HEIGHT));
 
 	LARGE_INTEGER perfCountFrequencyResult;
 	QueryPerformanceFrequency(&perfCountFrequencyResult);
