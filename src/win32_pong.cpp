@@ -357,6 +357,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		update(gameState, microsecondsElapsed);
 		render(gameState);
 		SwapBuffers(deviceContext);
+		
+		endCounter = workCounter;
 
 		/*if(microsecondsElapsed < targetMicrosecondsPerFrame) {
 			DWORD sleepMS = (DWORD)(1000 * (targetSecondsPerFrame - microsecondsElapsed));
@@ -367,9 +369,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 			while(microsecondsElapsed < targetMicrosecondsPerFrame) {
 				microsecondsElapsed = getMicrosecondsElapsed(endCounter, getWallClock());
 			}
-		}
-
-		endCounter = workCounter;*/
+		}*/
 #endif
 	}
 
