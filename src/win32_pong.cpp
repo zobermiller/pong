@@ -54,7 +54,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 		} break;
 
 		default:
-			return DefWindowProc(hWnd, message, wParam, lParam);
+		return DefWindowProc(hWnd, message, wParam, lParam);
 	}
 	return NULL;
 }
@@ -90,8 +90,8 @@ void makeRectFromCenterPoint(v2 centerPoint, v2 size, v2 vertices[]) {
 }
 
 void initGameState(game_state* gameState, u32 arenaWidth, u32 arenaHeight,
-									 v2 player1Pos, v2 player2Pos, v2 pos,
-									 v2 playerSize, v2 ballSize) {
+                   v2 player1Pos, v2 player2Pos, v2 pos,
+                   v2 playerSize, v2 ballSize) {
 	gameState->arenaWidth = arenaWidth;
 	gameState->arenaHeight = arenaHeight;
 
