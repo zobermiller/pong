@@ -13,19 +13,17 @@
 #define WIN32_LEAN_AND_MEAN
 #endif
 
-bool keyDown[256];
+bool keyDown[256] = {0};
 s64 globalPerfCountFrequency;
 
 void handleKeyDown(int vkCode) {
 	if(vkCode == VK_ESCAPE)
 		PostQuitMessage(0);
-	if(vkCode >= 0x30 || vkCode <= 0x5a)
-		keyDown[vkCode] = true;
+	keyDown[vkCode] = true;
 }
 
 void handleKeyUp(int vkCode) {
-	if(vkCode >= 0x30 || vkCode <= 0x5a)
-		keyDown[vkCode] = false;
+	keyDown[vkCode] = false;
 }
 
 inline LARGE_INTEGER getWallClock() {
@@ -115,9 +113,6 @@ void initGameState(game_state* gameState, u32 arenaWidth, u32 arenaHeight,
 	makeRectFromCenterPoint(gameState->ball.pos, gameState->ball.size, gameState->ball.vertices);
 	makeRectFromCenterPoint(gameState->players[0].pos, gameState->players[0].size, gameState->players[0].vertices);
 	makeRectFromCenterPoint(gameState->players[1].pos, gameState->players[1].size, gameState->players[1].vertices);
-
-	for(int i=0; i < 256; i++)
-		keyDown[i] = false;
 }
 
 wall collidedWithWall(v2 pos, v2 size, u32 width, u32 height) {
@@ -357,7 +352,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		update(gameState, microsecondsElapsed);
 		render(gameState);
 		SwapBuffers(deviceContext);
-		
+
 		endCounter = workCounter;
 
 		/*if(microsecondsElapsed < targetMicrosecondsPerFrame) {
