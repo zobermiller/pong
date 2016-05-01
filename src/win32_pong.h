@@ -15,28 +15,30 @@ typedef uint64_t u64;
 #define megabytes(value) (kilobytes(value) * 1024LL)
 #define gigabytes(value) (megabytes(value) * 1024LL)
 
-#define SCREEN_WIDTH 800
-#define SCREEN_HEIGHT 600
+#define Screen_Width 1280
+#define Screen_Height 720
 
-#define BALL_WIDTH 10
-#define BALL_HEIGHT 10
-#define PLAYER_WIDTH 20
-#define PLAYER_HEIGHT 50
+#define Ball_Width 10
+#define Ball_Height 10
+#define Player_Width 20
+#define Player_Height 50
 
-#define PLAYER_DEFAULT_Y SCREEN_HEIGHT / 2
+#define Player_Default_Y Screen_Height / 2.0f
 
-#define BALL_INITIAL_VELOCITY V2(600.0f, 0.0f)
+#define Ball_Initial_Velocity V2(600.0f, 0.0f)
 
-#define BALL_DEFAULT_X SCREEN_WIDTH / 2
-#define BALL_DEFAULT_Y SCREEN_HEIGHT / 2
+#define Ball_Default_X Screen_Width / 2.0f
+#define Ball_Default_Y Screen_Height / 2.0f
+
+#define Microseconds_To_Milliseconds 1 / 1000000.0f
 
 enum wall {
-	WALL_NONE,
+	WallNone,
 
-	WALL_LEFT,
-	WALL_UP,
-	WALL_RIGHT,
-	WALL_DOWN,
+	WallLeft,
+	WallRight,
+	WallUp,
+	WallDown,
 };
 
 struct game_memory {
@@ -47,7 +49,8 @@ struct game_memory {
 struct player {
 	v2 pos;
 	
-	v2 size; // Size is (width, height)
+	// Size is (width, height)
+	v2 size; 
 	u32 score;
 
 	v2 vertices[4];
@@ -56,7 +59,8 @@ struct player {
 struct ball {
 	v2 pos;
 
-	v2 size; // Size is (width, height)
+	// Size is (width, height)
+	v2 size; 
 	v2 velocity;
 
 	v2 vertices[4];
@@ -67,8 +71,6 @@ struct game_state {
 	ball ball;
 
 	u32 arenaWidth, arenaHeight;
-
-	v2 centerLine[2];
 
 	bool programRunning;
 };

@@ -62,7 +62,7 @@ bool initGL() {
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	glOrtho(0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, -1.0f);
+	glOrtho(0.0f, Screen_Width, Screen_Height, 0.0f, 1.0f, -1.0f);
 
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
@@ -76,7 +76,7 @@ bool initGL() {
 	return true;
 }
 
-void makeRectFromCenterPoint(v2 centerPoint, v2 size, v2 vertices[]) {
+void makeRectFromCenterPoint(v2 vertices[], v2 centerPoint, v2 size) {
 	vertices[0] = V2(centerPoint.x - 0.5f * size.x,
 	                 centerPoint.y - 0.5f * size.y);
 	vertices[1] = V2(centerPoint.x + 0.5f * size.x,
@@ -105,14 +105,13 @@ void initGameState(game_state* gameState, u32 arenaWidth, u32 arenaHeight,
 	gameState->ball.size = ballSize;
 	gameState->ball.velocity = V2(0, 0);
 
-	gameState->centerLine[0] = V2(SCREEN_WIDTH / 2, 0);
-	gameState->centerLine[1] = V2(SCREEN_WIDTH / 2, SCREEN_HEIGHT);
-
 	gameState->programRunning = true;
 
-	makeRectFromCenterPoint(gameState->ball.pos, gameState->ball.size, gameState->ball.vertices);
-	makeRectFromCenterPoint(gameState->players[0].pos, gameState->players[0].size, gameState->players[0].vertices);
-	makeRectFromCenterPoint(gameState->players[1].pos, gameState->players[1].size, gameState->players[1].vertices);
+	makeRectFromCenterPoint(gameState->ball.vertices, gameState->ball.pos, gameState->ball.size);
+	makeRectFromCenterPoint(gameState->players[0].vertices, gameState->players[0].pos, 
+	                        gameState->players[0].size);
+	makeRectFromCenterPoint(gameState->players[1].vertices, gameState->players[1].pos, 
+	                        gameState->players[1].size);
 }
 
 wall collidedWithWall(v2 pos, v2 size, u32 width, u32 height) {
@@ -122,44 +121,46 @@ wall collidedWithWall(v2 pos, v2 size, u32 width, u32 height) {
 	float yMax = pos.y + 0.5f * size.y;
 
 	if(xMin < 0)
-		return WALL_LEFT;
+		return WallLeft;
 	else if(yMin < 0)
-		return WALL_UP;
+		return WallUp;
 	else if(xMax > width)
-		return WALL_RIGHT;
+		return WallRight;
 	else if(yMax > height)
-		return WALL_DOWN;
+		return WallDown;
 
-	return WALL_NONE;
+	return WallNone;
 }
 
 void update(game_state* gameState, s64 microsecondsPerFrame) {
-	float dt = microsecondsPerFrame / 1000000.0f;
+	float dt = microsecondsPerFrame * Microseconds_To_Milliseconds;
 	wall whichWall = collidedWithWall(gameState->ball.pos, gameState->ball.size, gameState->arenaWidth, gameState->arenaHeight);
 
-	if(whichWall == WALL_LEFT || whichWall == WALL_RIGHT)
+	if(whichWall == WallLeft || whichWall == WallRight)
 		gameState->ball.velocity = V2(-gameState->ball.velocity.x, gameState->ball.velocity.y);
-	if(whichWall == WALL_UP || whichWall == WALL_DOWN)
+	if(whichWall == WallUp || whichWall == WallDown)
 		gameState->ball.velocity = V2(gameState->ball.velocity.x, -gameState->ball.velocity.y);
 
 	gameState->ball.pos += dt * gameState->ball.velocity;
 
-	whichWall = collidedWithWall(gameState->players[0].pos, gameState->players[0].size, gameState->arenaWidth, gameState->arenaHeight);
+	whichWall = collidedWithWall(gameState->players[0].pos, gameState->players[0].size, 
+	                             gameState->arenaWidth, gameState->arenaHeight);
 	v2 player1VelocityUp = V2(0, -200);
 	v2 player1VelocityDown = V2(0, 200);
 
-	if(whichWall == WALL_UP)
+	if(whichWall == WallUp)
 		player1VelocityUp = V2(0, 0);
-	if(whichWall == WALL_DOWN)
+	if(whichWall == WallDown)
 		player1VelocityDown = V2(0, 0);
 
-	whichWall = collidedWithWall(gameState->players[1].pos, gameState->players[1].size, gameState->arenaWidth, gameState->arenaHeight);
+	whichWall = collidedWithWall(gameState->players[1].pos, gameState->players[1].size, 
+	                             gameState->arenaWidth, gameState->arenaHeight);
 	v2 player2VelocityUp = V2(0, -200);
 	v2 player2VelocityDown = V2(0, 200);
 
-	if(whichWall == WALL_UP)
+	if(whichWall == WallUp)
 		player2VelocityUp = V2(0, 0);
-	if(whichWall == WALL_DOWN)
+	if(whichWall == WallDown)
 		player2VelocityDown = V2(0, 0);
 
 #if !SDL
@@ -175,7 +176,7 @@ void update(game_state* gameState, s64 microsecondsPerFrame) {
 
 	static bool spacePressed = false;
 	if(keyDown[VK_SPACE] && spacePressed == false) {
-		gameState->ball.velocity = BALL_INITIAL_VELOCITY;
+		gameState->ball.velocity = Ball_Initial_Velocity;
 		spacePressed = true;
 	}
 #else
@@ -194,7 +195,7 @@ void update(game_state* gameState, s64 microsecondsPerFrame) {
 
 	static bool spacePressed = false;
 	if(keyDown[SDL_SCANCODE_SPACE] && spacePressed == false) {
-		gameState->ball.velocity = BALL_INITIAL_VELOCITY;
+		gameState->ball.velocity = Ball_Initial_Velocity;
 		spacePressed = true;
 	}
 #endif
@@ -206,20 +207,21 @@ void render(game_state* gameState) {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glLoadIdentity();
 
+	// Renders the center line of the board
 	glColor3f(1.0f, 1.0f, 1.0f);
 	glBegin(GL_LINES);
-	glVertex2f(gameState->centerLine[0].x, gameState->centerLine[0].y);
-	glVertex2f(gameState->centerLine[1].x, gameState->centerLine[1].y);
+	glVertex2f(Screen_Width / 2.0f, 0.0f);
+	glVertex2f(Screen_Width / 2.0f, Screen_Height);
 	glEnd();
 
-	float yOffset_player0 = PLAYER_DEFAULT_Y - gameState->players[0].pos.y;
-	float yOffset_player1 = PLAYER_DEFAULT_Y - gameState->players[1].pos.y;
+	float yOffsetPlayer0 = Player_Default_Y - gameState->players[0].pos.y;
+	float yOffsetPlayer1 = Player_Default_Y - gameState->players[1].pos.y;
 
-	float xOffset_ball = BALL_DEFAULT_X - gameState->ball.pos.x;
-	float yOffset_ball = BALL_DEFAULT_Y - gameState->ball.pos.y;
+	float xOffsetBall = Ball_Default_X - gameState->ball.pos.x;
+	float yOffsetBall = Ball_Default_Y - gameState->ball.pos.y;
 
 	glPushMatrix();
-	glTranslatef(0.0f, -yOffset_player0, 0.0f);
+	glTranslatef(0.0f, -yOffsetPlayer0, 0.0f);
 	glBegin(GL_QUADS);
 	for(int i=0; i < 4; i++)
 		glVertex2f(gameState->players[0].vertices[i].x, gameState->players[0].vertices[i].y);
@@ -227,7 +229,7 @@ void render(game_state* gameState) {
 	glPopMatrix();
 
 	glPushMatrix();
-	glTranslatef(0.0f, -yOffset_player1, 0.0f);
+	glTranslatef(0.0f, -yOffsetPlayer1, 0.0f);
 	glBegin(GL_QUADS);
 	for(int i=0; i < 4; i++)
 		glVertex2f(gameState->players[1].vertices[i].x, gameState->players[1].vertices[i].y);
@@ -235,7 +237,7 @@ void render(game_state* gameState) {
 	glPopMatrix();
 
 	glPushMatrix();
-	glTranslatef(-xOffset_ball, -yOffset_ball, 0.0f);
+	glTranslatef(-xOffsetBall, -yOffsetBall, 0.0f);
 	glBegin(GL_QUADS);
 	for(int i=0; i < 4; i++)
 		glVertex2f(gameState->ball.vertices[i].x, gameState->ball.vertices[i].y);
@@ -245,7 +247,7 @@ void render(game_state* gameState) {
 	glFlush();
 }
 
-int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, s32 nCmdShow) {
 	LARGE_INTEGER perfCountFrequencyResult;
 	QueryPerformanceFrequency(&perfCountFrequencyResult);
 	globalPerfCountFrequency = perfCountFrequencyResult.QuadPart;
@@ -270,7 +272,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	                           "Pong",
 	                           WS_OVERLAPPEDWINDOW,
 	                           0, 0,
-	                           SCREEN_WIDTH, SCREEN_HEIGHT,
+	                           Screen_Width, Screen_Height,
 	                           NULL,
 	                           NULL,
 	                           hInstance,
@@ -279,17 +281,17 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	PIXELFORMATDESCRIPTOR pfd = {
 		sizeof(PIXELFORMATDESCRIPTOR),
 		1,
-		PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER,    //Flags
-		PFD_TYPE_RGBA,            //The kind of framebuffer. RGBA or palette.
-		32,                        //Colordepth of the framebuffer.
+		PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER,
+		PFD_TYPE_RGBA,
+		32,
 		0, 0, 0, 0, 0, 0,
 		1,
 		0,
 		0,
 		0, 0, 0, 0,
-		16,                        //Number of bits for the depthbuffer
-		0,                        //Number of bits for the stencilbuffer
-		0,                        //Number of Aux buffers in the framebuffer.
+		16,
+		0,
+		0,
 		PFD_MAIN_PLANE,
 		0,
 		0, 0, 0
@@ -297,7 +299,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 	HDC deviceContext = GetDC(hWnd);
 
-	int pixelFormat = ChoosePixelFormat(deviceContext, &pfd);
+	s32 pixelFormat = ChoosePixelFormat(deviceContext, &pfd);
 	SetPixelFormat(deviceContext, pixelFormat, &pfd);
 
 	HGLRC renderContext = wglCreateContext(deviceContext);
@@ -312,9 +314,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	game_state *gameState = (game_state*)gameMemory.storage;
 
 	initGL();
-	initGameState(gameState, SCREEN_WIDTH, SCREEN_HEIGHT, V2(50, PLAYER_DEFAULT_Y), V2(SCREEN_WIDTH - 50, PLAYER_DEFAULT_Y),
-	              V2(BALL_DEFAULT_X, BALL_DEFAULT_Y), V2(PLAYER_WIDTH, PLAYER_HEIGHT), V2(BALL_WIDTH, BALL_HEIGHT));
-
+	initGameState(gameState, Screen_Width, Screen_Height, V2(50, Player_Default_Y), 
+	              V2(Screen_Width - 50, Player_Default_Y), V2(Ball_Default_X, Ball_Default_Y), 
+	              V2(Player_Width, Player_Height), V2(Ball_Width, Ball_Height));
 
 	bool running = true;
 	MSG msg;
@@ -380,34 +382,23 @@ void renderSDL(game_state* gameState, SDL_Renderer* renderer) {
 
 	SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
 
-	s32 player0X = (s32)round(gameState->players[0].pos.x - (PLAYER_WIDTH / 2));
-	s32 player0Y = (s32)round(gameState->players[0].pos.y - (PLAYER_HEIGHT /2));
-	s32 player1X = (s32)round(gameState->players[1].pos.x - (PLAYER_WIDTH / 2));
-	s32 player1Y = (s32)round(gameState->players[1].pos.y - (PLAYER_HEIGHT / 2));
+	s32 player0X = (s32)round(gameState->players[0].pos.x - (Player_Width / 2));
+	s32 player0Y = (s32)round(gameState->players[0].pos.y - (Player_Height /2));
+	s32 player1X = (s32)round(gameState->players[1].pos.x - (Player_Width / 2));
+	s32 player1Y = (s32)round(gameState->players[1].pos.y - (Player_Height / 2));
 
-	s32 ballX = (s32)round(gameState->ball.pos.x - (BALL_WIDTH / 2));
-	s32 ballY = (s32)round(gameState->ball.pos.y - (BALL_HEIGHT /2));
+	s32 ballX = (s32)round(gameState->ball.pos.x - (Ball_Width / 2));
+	s32 ballY = (s32)round(gameState->ball.pos.y - (Ball_Height /2));
 
-	SDL_Rect player0Rect = {player0X, player0Y, PLAYER_WIDTH, PLAYER_HEIGHT};
-	SDL_Rect player1Rect = {player1X, player1Y, PLAYER_WIDTH, PLAYER_HEIGHT};
-	SDL_Rect ballRect = {ballX, ballY, BALL_WIDTH, BALL_HEIGHT};
+	SDL_Rect player0Rect = {player0X, player0Y, Player_Width, Player_Height};
+	SDL_Rect player1Rect = {player1X, player1Y, Player_Width, Player_Height};
+	SDL_Rect ballRect = {ballX, ballY, Ball_Width, Ball_Height};
 
 	SDL_RenderFillRect(renderer, &player0Rect);
 	SDL_RenderFillRect(renderer, &player1Rect);
 	SDL_RenderFillRect(renderer, &ballRect);
 
-	SDL_RenderDrawLine(renderer, (s32)gameState->centerLine[0].x, (s32)gameState->centerLine[0].y, (s32)gameState->centerLine[1].x, (s32)gameState->centerLine[1].y);
-
-	static s32 charges = 5000;
-	if(charges == 0) {
-		char buffer[200];
-		sprintf_s(buffer, "P: (%f, %f)\n", gameState->ball.pos.x, gameState->ball.pos.y);
-		OutputDebugString(buffer);
-		charges = 5000;
-	}
-	else {
-		charges--;
-	}
+	SDL_RenderDrawLine(renderer, Screen_Width / 2, 0, Screen_Width / 2, Screen_Height);
 
 	SDL_RenderPresent(renderer);
 }
@@ -425,21 +416,20 @@ int main(int argc, char** argv) {
 	SDL_Init(SDL_INIT_VIDEO);
 	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
 	SDL_Window *window = SDL_CreateWindow("Pong", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-	                                      SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
+	                                      Screen_Width, Screen_Height, SDL_WINDOW_SHOWN);
 #if VSYNC
 	SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_PRESENTVSYNC);
 #else
 	SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, 0);
 #endif
-	TTF_Init();
-
 	game_memory gameMemory = {};
 	gameMemory.storageSize = megabytes(1);
 	gameMemory.storage = VirtualAlloc(0, (size_t)gameMemory.storageSize, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
 
 	game_state* gameState = (game_state*)gameMemory.storage;
-	initGameState(gameState, SCREEN_WIDTH, SCREEN_HEIGHT, V2(50, PLAYER_DEFAULT_Y), V2(SCREEN_WIDTH - 50, PLAYER_DEFAULT_Y),
-	              V2(BALL_DEFAULT_X, BALL_DEFAULT_Y), V2(PLAYER_WIDTH, PLAYER_HEIGHT), V2(BALL_WIDTH, BALL_HEIGHT));
+	initGameState(gameState, Screen_Width, Screen_Height, V2(50, Player_Default_Y), 
+	              V2(Screen_Width - 50, Player_Default_Y), V2(Ball_Default_X, Ball_Default_Y), 
+	              V2(Player_Width, Player_Height), V2(Ball_Width, Ball_Height));
 
 	LARGE_INTEGER perfCountFrequencyResult;
 	QueryPerformanceFrequency(&perfCountFrequencyResult);
@@ -472,7 +462,6 @@ int main(int argc, char** argv) {
 
 	VirtualFree(gameMemory.storage, 0, MEM_RELEASE);
 
-	TTF_Quit();
 	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(window);
 
