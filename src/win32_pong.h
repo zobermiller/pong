@@ -30,8 +30,6 @@ typedef uint64_t u64;
 #define Ball_Default_X Screen_Width / 2.0f
 #define Ball_Default_Y Screen_Height / 2.0f
 
-#define Microseconds_To_Milliseconds 1 / 1000000.0f
-
 enum wall {
 	WallNone,
 
