@@ -15,20 +15,23 @@ typedef uint64_t u64;
 #define megabytes(value) (kilobytes(value) * 1024LL)
 #define gigabytes(value) (megabytes(value) * 1024LL)
 
-#define Screen_Width 1280
-#define Screen_Height 720
+#define Screen_Width 1920
+#define Screen_Height 1080
 
 #define Ball_Width 10
 #define Ball_Height 10
 #define Player_Width 20
 #define Player_Height 50
 
-#define Player_Default_Y Screen_Height / 2.0f
+#define Player_Default_Y (Screen_Height / 2.0f)
 
-#define Ball_Initial_Velocity V2(600.0f, 0.0f)
+#define Paddle_Velocity_Up V2(0.0f, -400.0f)
+#define Paddle_Velocity_Down V2(0.0f, 400.0f)
 
-#define Ball_Default_X Screen_Width / 2.0f
-#define Ball_Default_Y Screen_Height / 2.0f
+#define Ball_Initial_Velocity V2(800.0f, 0.0f)
+
+#define Ball_Default_X (Screen_Width / 2.0f)
+#define Ball_Default_Y (Screen_Height / 2.0f)
 
 enum wall {
 	WallNone,
@@ -69,6 +72,8 @@ struct game_state {
 	ball ball;
 
 	u32 arenaWidth, arenaHeight;
+
+	bool keyDown[256];
 
 	bool programRunning;
 };
