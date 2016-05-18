@@ -1,22 +1,15 @@
 #ifndef WIN32_PONG_H
 #define WIN32_PONG_H
 
-typedef int8_t s8;
-typedef int16_t s16;
-typedef int32_t s32;
-typedef int64_t s64;
-
-typedef uint8_t u8;
-typedef uint16_t u16;
-typedef uint32_t u32;
-typedef uint64_t u64;
+#include "precompiled.h"
+#include "pong_math.h"
 
 #define kilobytes(value) ((value) * 1024LL)
 #define megabytes(value) (kilobytes(value) * 1024LL)
 #define gigabytes(value) (megabytes(value) * 1024LL)
 
-#define Screen_Width 1920
-#define Screen_Height 1080
+#define Screen_Width 1280
+#define Screen_Height 720
 
 #define Ball_Width 10
 #define Ball_Height 10
@@ -33,6 +26,8 @@ typedef uint64_t u64;
 #define Ball_Default_X (Screen_Width / 2.0f)
 #define Ball_Default_Y (Screen_Height / 2.0f)
 
+#define Align16(value) ((value + 15) & ~15)
+
 enum wall {
 	WallNone,
 
@@ -40,6 +35,15 @@ enum wall {
 	WallRight,
 	WallUp,
 	WallDown,
+};
+
+struct offscreen_buffer {
+	void *memory;
+	s32 width;
+	s32 height;
+	s32 pitch;
+	s32 bytesPerPixel;
+	BITMAPINFO info;
 };
 
 struct game_memory {
@@ -76,6 +80,11 @@ struct game_state {
 	bool keyDown[256];
 
 	bool programRunning;
+};
+
+struct window_dimension {
+	s32 width;
+	s32 height;
 };
 
 #endif
