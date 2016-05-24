@@ -12,8 +12,7 @@ void toggleFullscreen(HWND window) {
 	if(style & WS_OVERLAPPEDWINDOW) {
 		MONITORINFO monitorInfo = { sizeof(monitorInfo) };
 
-		if(GetWindowPlacement(window, &globalWindowPosition) &&
-		   GetMonitorInfo(MonitorFromWindow(window, MONITOR_DEFAULTTOPRIMARY), &monitorInfo)) {
+		if(GetWindowPlacement(window, &globalWindowPosition) && GetMonitorInfo(MonitorFromWindow(window, MONITOR_DEFAULTTOPRIMARY), &monitorInfo)) {
 			SetWindowLong(window, GWL_STYLE, style & ~WS_OVERLAPPEDWINDOW);
 			SetWindowPos(window, HWND_TOP,
 			             monitorInfo.rcMonitor.left, monitorInfo.rcMonitor.top,
@@ -48,7 +47,7 @@ inline LARGE_INTEGER getWallClock() {
 }
 
 inline u64 getMicrosecondsElapsed(LARGE_INTEGER start, LARGE_INTEGER end, u64 perfCountFrequency) {
-	u64 result = (((end.QuadPart - start.QuadPart) * 1000000)  / perfCountFrequency);
+	u64 result = (((end.QuadPart - start.QuadPart) * 1000000) / perfCountFrequency);
 	return result;
 }
 
@@ -106,9 +105,9 @@ void initGameState(game_state *gameState, u32 arenaWidth, u32 arenaHeight,
 	gameState->programRunning = true;
 
 	makeRectFromCenterPoint(gameState->ball.vertices, gameState->ball.pos, gameState->ball.size);
-	makeRectFromCenterPoint(gameState->players[0].vertices, gameState->players[0].pos, 
+	makeRectFromCenterPoint(gameState->players[0].vertices, gameState->players[0].pos,
 	                        gameState->players[0].size);
-	makeRectFromCenterPoint(gameState->players[1].vertices, gameState->players[1].pos, 
+	makeRectFromCenterPoint(gameState->players[1].vertices, gameState->players[1].pos,
 	                        gameState->players[1].size);
 }
 
@@ -131,7 +130,7 @@ inline wall collidedWithWall(v2 pos, v2 size, u32 arenaWidth, u32 arenaHeight) {
 }
 
 void update(game_state *gameState, float dt) {
-	wall whichWall = collidedWithWall(gameState->ball.pos, gameState->ball.size, 
+	wall whichWall = collidedWithWall(gameState->ball.pos, gameState->ball.size,
 	                                  gameState->arenaWidth, gameState->arenaHeight);
 
 	if(whichWall == WallLeft || whichWall == WallRight) {
@@ -145,7 +144,7 @@ void update(game_state *gameState, float dt) {
 	gameState->ball.velocity += dt * acceleration;
 	gameState->ball.pos += dt * gameState->ball.velocity;
 
-	whichWall = collidedWithWall(gameState->players[0].pos, gameState->players[0].size, 
+	whichWall = collidedWithWall(gameState->players[0].pos, gameState->players[0].size,
 	                             gameState->arenaWidth, gameState->arenaHeight);
 	v2 player0VelocityUp = Paddle_Velocity_Up;
 	v2 player0VelocityDown = Paddle_Velocity_Down;
@@ -157,7 +156,7 @@ void update(game_state *gameState, float dt) {
 		player0VelocityDown = V2(0, 0);
 	}
 
-	whichWall = collidedWithWall(gameState->players[1].pos, gameState->players[1].size, 
+	whichWall = collidedWithWall(gameState->players[1].pos, gameState->players[1].size,
 	                             gameState->arenaWidth, gameState->arenaHeight);
 	v2 player1VelocityUp = Paddle_Velocity_Up;
 	v2 player1VelocityDown = Paddle_Velocity_Down;
@@ -183,9 +182,6 @@ void update(game_state *gameState, float dt) {
 	}
 	if(gameState->keyDown[VK_SPACE]) {
 		gameState->ball.velocity = Ball_Initial_Velocity;
-	}
-	if(gameState->keyDown[VK_RETURN]) {
-		toggleFullscreen(hWnd);
 	}
 }
 
@@ -233,17 +229,17 @@ inline void line(float x0, float y0, float x1, float y1) {
 	glEnd();
 }
 
-inline void render(game_state *gameState, float offset) {
+void render(game_state *gameState, float offset) {
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	offset /= 1000.0f;
-	v2 ballOffset = offset * V2(gameState->ball.velocity.x, gameState->ball.velocity.y);
-	makeRectFromCenterPoint(gameState->ball.vertices, gameState->ball.pos + ballOffset, gameState->ball.size);
-	makeRectFromCenterPoint(gameState->players[0].vertices, gameState->players[0].pos, 
-	                        gameState->players[0].size);
-	makeRectFromCenterPoint(gameState->players[1].vertices, gameState->players[1].pos, 
-	                        gameState->players[1].size);
+	v2 ballOffset = (offset * gameState->ball.pos) + ((1.0f - offset) * gameState->ball.pos);
+	v2 player0Offset = (offset * gameState->players[0].pos) + ((1.0f - offset) * gameState->players[0].pos);
+	v2 player1Offset = (offset * gameState->players[1].pos) + ((1.0f - offset) * gameState->players[1].pos);
+
+	makeRectFromCenterPoint(gameState->ball.vertices, ballOffset, gameState->ball.size);
+	makeRectFromCenterPoint(gameState->players[0].vertices, player0Offset, gameState->players[0].size);
+	makeRectFromCenterPoint(gameState->players[1].vertices, player1Offset, gameState->players[1].size);
 
 	glColor3f(1.0f, 1.0f, 1.0f);
 
@@ -274,7 +270,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	RegisterClassEx(&wc);
 
 	hWnd = CreateWindowEx(0, "WindowClass", "Pong", WS_OVERLAPPEDWINDOW|WS_VISIBLE,
-	                           0, 0, Screen_Width, Screen_Height, NULL, NULL, hInstance, NULL);
+	                      0, 0, Screen_Width, Screen_Height, NULL, NULL, hInstance, NULL);
 
 	PIXELFORMATDESCRIPTOR pfd = {
 		sizeof(PIXELFORMATDESCRIPTOR),
@@ -305,8 +301,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 	ShowWindow(hWnd, nCmdShow);
 
-	// toggleFullscreen(hWnd);
-
 	game_memory gameMemory = {};
 	gameMemory.storageSize = megabytes(1);
 	gameMemory.storage = VirtualAlloc(0, (size_t)gameMemory.storageSize, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
@@ -314,14 +308,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	game_state *gameState = (game_state*)gameMemory.storage;
 
 	initGL();
-	initGameState(gameState, Screen_Width, Screen_Height, V2(50, Player_Default_Y), 
-	              V2(Screen_Width - 50, Player_Default_Y), V2(Ball_Default_X, Ball_Default_Y), 
+	initGameState(gameState, Screen_Width, Screen_Height, V2(50, Player_Default_Y),
+	              V2(Screen_Width - 50, Player_Default_Y), V2(Ball_Default_X, Ball_Default_Y),
 	              V2(Player_Width, Player_Height), V2(Ball_Width, Ball_Height));
 
 	MSG msg;
 	LARGE_INTEGER previous = getWallClock();
-	float lag = 0.0f;
-	float targetSeconds = 1 / 60.0f;
+	float accumulator = 0.0f;
+	float targetSeconds = 1 / 120.0f;
 
 	PFNWGLSWAPINTERVALEXTPROC proc = (PFNWGLSWAPINTERVALEXTPROC)wglGetProcAddress("wglSwapIntervalEXT");
 #if VSYNC
@@ -330,6 +324,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	proc(0);
 #endif
 	while(gameState->programRunning) {
+
 		while(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
 			switch(msg.message) {
 				case WM_QUIT: {
@@ -359,24 +354,33 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		s64 microsecondsElapsed = getMicrosecondsElapsed(previous, current, perfCountFrequency);
 		previous = current;
 
-		// microsecondsElapsed is converted from microseconds to seconds and added to lag variable
-		lag += (microsecondsElapsed / (1000.0f * 1000.0f));
+		// microsecondsElapsed is converted from microseconds to seconds and added to accumulator variable
+		accumulator += (microsecondsElapsed / (1000.0f * 1000.0f));
 
-		while(lag >= targetSeconds) {
+		while(accumulator >= targetSeconds) {
 			update(gameState, targetSeconds);
-			lag -= targetSeconds;
+			accumulator -= targetSeconds;
 		}
 
-		float offset = lag / targetSeconds;
+		float offset = accumulator / targetSeconds;
 		render(gameState, offset);
 		SwapBuffers(deviceContext);
 
 		// LARGE_INTEGER sleep = getWallClock();
-		// s64 remaining = getMicrosecondsElapsed(current, sleep, perfCountFrequency);
-		// if(remaining < targetMicroseconds) {
-		// 	s64 amount = (targetMicroseconds - remaining) / 1000;
-		// 	Sleep((DWORD)amount);
+		// float remaining = getMicrosecondsElapsed(current, sleep, perfCountFrequency) / (1000.0f * 1000.0f);
+		// while(remaining < targetSeconds) {
+		// 	remaining = getMicrosecondsElapsed(current, getWallClock(), perfCountFrequency) / (1000.0f * 1000.0f);
 		// }
+
+#if 0
+		LARGE_INTEGER end = getWallClock();
+		float msPerFrame = getMicrosecondsElapsed(previous, end, perfCountFrequency) / 1000.0f;
+
+		char fpsBuffer[256];
+		sprintf_s(fpsBuffer, "%.02fms/f\n", msPerFrame);
+
+		OutputDebugString(fpsBuffer);
+#endif
 #endif
 	}
 
@@ -384,7 +388,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	VirtualFree(gameMemory.storage, 0, MEM_RELEASE);
 	return (s32)msg.wParam;
 }
-#endif
 
 
 
@@ -392,7 +395,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 
 
-#if SOFTWARE
+#else
 void resizeDIBSection(offscreen_buffer *buffer, s32 width, s32 height) {
 	buffer->width = width;
 	buffer->height = height;
@@ -443,17 +446,16 @@ inline void clearBuffer(offscreen_buffer *buffer) {
 	}
 }
 
-
 void render(game_state *gameState, offscreen_buffer *buffer, float offset) {
 	clearBuffer(buffer);
 
-	offset /= 1000.0f;
-	v2 ballOffset = offset * V2(gameState->ball.velocity.x, gameState->ball.velocity.y);
-	makeRectFromCenterPoint(gameState->ball.vertices, gameState->ball.pos + ballOffset, gameState->ball.size);
-	makeRectFromCenterPoint(gameState->players[0].vertices, gameState->players[0].pos, 
-	                        gameState->players[0].size);
-	makeRectFromCenterPoint(gameState->players[1].vertices, gameState->players[1].pos, 
-	                        gameState->players[1].size);
+	v2 ballOffset = (offset * gameState->ball.pos) + ((1.0f - offset) * gameState->ball.pos);
+	v2 player0Offset = (offset * gameState->players[0].pos) + ((1.0f - offset) * gameState->players[0].pos);
+	v2 player1Offset = (offset * gameState->players[1].pos) + ((1.0f - offset) * gameState->players[1].pos);
+
+	makeRectFromCenterPoint(gameState->ball.vertices, ballOffset, gameState->ball.size);
+	makeRectFromCenterPoint(gameState->players[0].vertices, player0Offset, gameState->players[0].size);
+	makeRectFromCenterPoint(gameState->players[1].vertices, player1Offset, gameState->players[1].size);
 
 	drawRectangle(buffer, gameState->ball.vertices[0], gameState->ball.vertices[2], 0xffffffff);
 	drawRectangle(buffer, gameState->players[0].vertices[0], gameState->players[0].vertices[2], 0xffffffff);
@@ -481,27 +483,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	resizeDIBSection(&buffer, Screen_Width, Screen_Height);
 
 	hWnd = CreateWindowEx(0, "WindowClass", "Pong", WS_OVERLAPPEDWINDOW|WS_VISIBLE,
-	                      CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, 0, 
+	                      0, 0, CW_USEDEFAULT, CW_USEDEFAULT, 0, 
 	                      0, hInstance, 0);
-
-	PIXELFORMATDESCRIPTOR pfd = {
-		sizeof(PIXELFORMATDESCRIPTOR),
-		1,
-		PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER,
-		PFD_TYPE_RGBA,
-		32,
-		0, 0, 0, 0, 0, 0,
-		1,
-		0,
-		0,
-		0, 0, 0, 0,
-		16,
-		0,
-		0,
-		PFD_MAIN_PLANE,
-		0,
-		0, 0, 0
-	};
 
 	HDC deviceContext = GetDC(hWnd);
 
@@ -522,9 +505,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	MSG msg;
 	LARGE_INTEGER previous = getWallClock();
 	float lag = 0.0f;
-	float targetSeconds = 1 / 60.0f;
+	float targetSeconds = 1 / 120.0f;
 
 	while(gameState->programRunning) {
+
 		while(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
 			switch(msg.message) {
 				case WM_QUIT: {
@@ -558,25 +542,26 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		previous = current;
 
 		// microsecondsElapsed is converted from microseconds to seconds and added to lag variable
-		// lag += (microsecondsElapsed / (1000.0f * 1000.0f));
+		lag += (microsecondsElapsed / (1000.0f * 1000.0f));
 
-		// while(lag >= targetSeconds) {
-		update(gameState, targetSeconds);
-		// 	lag -= targetSeconds;
-		// }
-
-		render(gameState, &buffer, 0.0f);
-		displayBufferInWindow(&buffer, deviceContext);
-
-		LARGE_INTEGER sleep = getWallClock();
-		float remaining = getMicrosecondsElapsed(previous, sleep, perfCountFrequency) / (1000.0f * 1000.0f);
-		while(remaining < targetSeconds) {
-			// s64 amount = (DWORD)((targetSeconds - remaining) * 1000.0f);
-			remaining = getMicrosecondsElapsed(previous, getWallClock(), perfCountFrequency) / (1000.0f * 1000.0f);
-			// Sleep((DWORD)amount);
+		while(lag >= targetSeconds) {
+			update(gameState, targetSeconds);
+			lag -= targetSeconds;
 		}
 
-#if 1
+		float offset = lag / targetSeconds;
+		render(gameState, &buffer, offset);
+		displayBufferInWindow(&buffer, deviceContext);
+
+		// LARGE_INTEGER sleep = getWallClock();
+		// float remaining = getMicrosecondsElapsed(previous, sleep, perfCountFrequency) / (1000.0f * 1000.0f);
+		// while(remaining < targetSeconds) {
+		// 	s64 amount = (DWORD)((targetSeconds - remaining) * 1000.0f);
+		// 	remaining = getMicrosecondsElapsed(previous, getWallClock(), perfCountFrequency) / (1000.0f * 1000.0f);
+		// 	Sleep((DWORD)amount);
+		// }
+
+#if 0
 		LARGE_INTEGER end = getWallClock();
 		float msPerFrame = getMicrosecondsElapsed(previous, end, perfCountFrequency) / 1000.0f;
 
