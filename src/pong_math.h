@@ -6,19 +6,19 @@ struct v2 {
 };
 
 struct v2i {
-	s32 x, y;
+	int x, y;
 };
 
 struct rectangle2i {
-	s32 minX, minY;
-	s32 maxX, maxY;
+	int minX, minY;
+	int maxX, maxY;
 };
 
 v2i roundV2(v2 input) {
 	v2i result = {};
 
-	result.x = (s32)round(input.x);
-	result.y = (s32)round(input.y);
+	result.x = (int)round(input.x);
+	result.y = (int)round(input.y);
 
 	return result;
 }
@@ -77,7 +77,7 @@ inline float inner(v2 a, v2 b) {
 	return result;
 }
 
-inline rectangle2i Rect(s32 minX, s32 minY, s32 maxX, s32 maxY) {
+inline rectangle2i Rect(int minX, int minY, int maxX, int maxY) {
 	rectangle2i result;
 
 	result.minX = minX;

@@ -48,7 +48,7 @@ void processPendingMessages(game_state *gameState) {
 			case WM_SYSKEYDOWN:
 			case WM_SYSKEYUP:
 			case WM_KEYDOWN: {
-				u32 vkCode = (u32)msg.wParam;
+				uint32_t vkCode = (uint32_t)msg.wParam;
 
 				bool wasDown = ((msg.lParam & (1 << 30)) != 0);
 				bool isDown = ((msg.lParam & (1 << 31)) == 0);
@@ -69,7 +69,7 @@ void processPendingMessages(game_state *gameState) {
 						PostQuitMessage(0);
 					}
 					if(isDown) {
-						s32 altKey = (msg.lParam & (1 << 29));
+						int altKey = (msg.lParam & (1 << 29));
 						if((vkCode == VK_RETURN) && altKey) {
 							toggleFullscreen(hWnd);
 						}
@@ -91,8 +91,8 @@ inline LARGE_INTEGER getWallClock() {
 	return result;
 }
 
-inline u64 getMicrosecondsElapsed(LARGE_INTEGER start, LARGE_INTEGER end, u64 perfCountFrequency) {
-	u64 result = (((end.QuadPart - start.QuadPart) * 1000000) / perfCountFrequency);
+inline uint64_t getMicrosecondsElapsed(LARGE_INTEGER start, LARGE_INTEGER end, uint64_t perfCountFrequency) {
+	uint64_t result = (((end.QuadPart - start.QuadPart) * 1000000) / perfCountFrequency);
 	return result;
 }
 
@@ -118,7 +118,7 @@ inline void makeRectFromCenterPoint(v2 vertices[], v2 centerPoint, v2 size) {
 	vertices[3] = V2(centerPoint.x - (0.5f * size.x), centerPoint.y + (0.5f * size.y));
 }
 
-void initGameState(game_state *gameState, u32 arenaWidth, u32 arenaHeight,
+void initGameState(game_state *gameState, uint32_t arenaWidth, uint32_t arenaHeight,
                    v2 player1Pos, v2 player2Pos, v2 pos, v2 playerSize, v2 ballSize) {
 	gameState->arenaWidth = arenaWidth;
 	gameState->arenaHeight = arenaHeight;
@@ -138,7 +138,7 @@ void initGameState(game_state *gameState, u32 arenaWidth, u32 arenaHeight,
 	gameState->programRunning = true;
 }
 
-inline wall collidedWithWall(v2 pos, v2 size, u32 arenaWidth, u32 arenaHeight) {
+inline wall collidedWithWall(v2 pos, v2 size, uint32_t arenaWidth, uint32_t arenaHeight) {
 	float xMin = pos.x - 0.5f * size.x;
 	float xMax = pos.x + 0.5f * size.x;
 	float yMin = pos.y - 0.5f * size.y;
@@ -233,7 +233,7 @@ bool initGL() {
 	return true;
 }
 
-inline void quad(v2 vertices[], s32 n) {
+inline void quad(v2 vertices[], int n) {
 	// n is assumed to be 4 or a multiple of 4.
 	glBegin(GL_QUADS);
 
@@ -275,10 +275,10 @@ void render(game_state *gameState, float offset) {
 	glFlush();
 }
 
-int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, s32 nCmdShow) {
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
 	LARGE_INTEGER perfCountFrequencyResult;
 	QueryPerformanceFrequency(&perfCountFrequencyResult);
-	s64 perfCountFrequency = perfCountFrequencyResult.QuadPart;
+	int64_t perfCountFrequency = perfCountFrequencyResult.QuadPart;
 
 	timeBeginPeriod(1);
 
@@ -317,7 +317,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 	HDC deviceContext = GetDC(hWnd);
 
-	s32 pixelFormat = ChoosePixelFormat(deviceContext, &pfd);
+	int pixelFormat = ChoosePixelFormat(deviceContext, &pfd);
 	SetPixelFormat(deviceContext, pixelFormat, &pfd);
 
 	HGLRC renderContext = wglCreateContext(deviceContext);
@@ -350,21 +350,20 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		processPendingMessages(gameState);
 
 		LARGE_INTEGER current = getWallClock();
-		s64 microsecondsElapsed = getMicrosecondsElapsed(previous, current, perfCountFrequency);
+		int64_t microsecondsElapsed = getMicrosecondsElapsed(previous, current, perfCountFrequency);
 		previous = current;
 
 		// microsecondsElapsed is converted from microseconds to seconds and added to accumulator variable
-		// accumulator += (microsecondsElapsed / (1000.0f * 1000.0f));
+		accumulator += (microsecondsElapsed / (1000.0f * 1000.0f));
 
 		// while(accumulator >= targetSeconds) {
 		// 	update(gameState, targetSeconds);
 		// 	accumulator -= targetSeconds;
 		// }
 
-		// float offset = accumulator / targetSeconds;
-		float offset = 0.0f;
+		float offset = accumulator / targetSeconds;
 		update(gameState, targetSeconds);
-		render(gameState, offset);
+		render(gameState, 0.0f);
 		SwapBuffers(deviceContext);
 
 		LARGE_INTEGER sleep = getWallClock();
@@ -373,14 +372,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 			remaining = getMicrosecondsElapsed(current, getWallClock(), perfCountFrequency) / (1000.0f * 1000.0f);
 		}
 
-#if 0
+#if 1
 		LARGE_INTEGER end = getWallClock();
 		float msPerFrame = getMicrosecondsElapsed(previous, end, perfCountFrequency) / 1000.0f;
 
-		char fpsBuffer[256];
+		char fpsBuffer[50];
 		sprintf_s(fpsBuffer, "%.02fms/f\n", msPerFrame);
 
-		OutputDebugString(fpsBuffer);
+		SetWindowText(hWnd, fpsBuffer);
 #endif
 	}
 
@@ -405,7 +404,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 
 #else
-void resizeDIBSection(offscreen_buffer *buffer, s32 width, s32 height) {
+void resizeDIBSection(offscreen_buffer *buffer, int width, int height) {
 	buffer->width = width;
 	buffer->height = height;
 	buffer->bytesPerPixel = 4;
@@ -418,7 +417,7 @@ void resizeDIBSection(offscreen_buffer *buffer, s32 width, s32 height) {
 	buffer->info.bmiHeader.biBitCount = 32;
 	buffer->info.bmiHeader.biCompression = BI_RGB;
 
-	s32 bitmapMemorySize = (buffer->pitch * buffer->height);	
+	int bitmapMemorySize = (buffer->pitch * buffer->height);	
 	buffer->memory = VirtualAlloc(0, bitmapMemorySize, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
 }
 
@@ -427,7 +426,7 @@ void displayBufferInWindow(offscreen_buffer *buffer, HDC context) {
 	              buffer->memory, &buffer->info, DIB_RGB_COLORS, SRCCOPY);
 }
 
-inline void drawRectangle(offscreen_buffer *buffer, v2 vMin, v2 vMax, s32 color) {
+inline void drawRectangle(offscreen_buffer *buffer, v2 vMin, v2 vMax, int color) {
 	// vMin should be vertices[0] and vMax should be vertices[2]. At least for now.
 	rectangle2i source = makeRectV2(vMin, vMax);
 	rectangle2i dest = Rect(0, 0, buffer->width, buffer->height);
@@ -435,9 +434,9 @@ inline void drawRectangle(offscreen_buffer *buffer, v2 vMin, v2 vMax, s32 color)
 
 	u8 *row = ((u8 *)buffer->memory + (clip.minX*buffer->bytesPerPixel) + 
 	           (clip.minY*buffer->pitch));
-	for(s32 y=clip.minY; y < clip.maxY; ++y) {
-		u32 *pixel = (u32 *)row;
-		for(s32 x=clip.minX; x < clip.maxX; ++x) {
+	for(int y=clip.minY; y < clip.maxY; ++y) {
+		uint32_t *pixel = (uint32_t *)row;
+		for(int x=clip.minX; x < clip.maxX; ++x) {
 			*pixel++ = color;
 		}
 		row += buffer->pitch;
@@ -446,9 +445,9 @@ inline void drawRectangle(offscreen_buffer *buffer, v2 vMin, v2 vMax, s32 color)
 
 inline void clearBuffer(offscreen_buffer *buffer) {
 	u8 *row = (u8 *)buffer->memory;
-	for(s32 y=0; y < buffer->height; ++y) {
-		u32 *pixel = (u32 *)row;
-		for(s32 x=0; x < buffer->width; ++x) {
+	for(int y=0; y < buffer->height; ++y) {
+		uint32_t *pixel = (uint32_t *)row;
+		for(int x=0; x < buffer->width; ++x) {
 			*pixel++ = 0x00000000;
 		}
 		row += buffer->pitch;
@@ -471,10 +470,10 @@ void render(game_state *gameState, offscreen_buffer *buffer, float offset) {
 	drawRectangle(buffer, gameState->players[1].vertices[0], gameState->players[1].vertices[2], 0xffffffff);
 }
 
-int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, s32 nCmdShow) {
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
 	LARGE_INTEGER perfCountFrequencyResult;
 	QueryPerformanceFrequency(&perfCountFrequencyResult);
-	u64 perfCountFrequency = perfCountFrequencyResult.QuadPart;
+	uint64_t perfCountFrequency = perfCountFrequencyResult.QuadPart;
 
 
 	WNDCLASSEX wc;
@@ -511,43 +510,15 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 	timeBeginPeriod(1);
 
-	MSG msg;
 	LARGE_INTEGER previous = getWallClock();
 	float lag = 0.0f;
 	float targetSeconds = 1 / 120.0f;
 
 	while(gameState->programRunning) {
+		processPendingMessages(gameState);
 
-		while(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
-			switch(msg.message) {
-				case WM_QUIT: {
-					gameState->programRunning = false;
-				} break;
-
-				case WM_KEYDOWN: {
-					handleKeyDown((s32)msg.wParam, gameState);
-				} break;
-
-				case WM_KEYUP: {
-					handleKeyUp((s32)msg.wParam, gameState);
-				} break;
-
-				case WM_PAINT: {
-					PAINTSTRUCT paint;
-					HDC deviceContext = BeginPaint(hWnd, &paint);
-					window_dimension dimension = getWindowDimension(hWnd);
-					displayBufferInWindow(&buffer, deviceContext);
-					EndPaint(hWnd, &paint);
-				} break;
-
-				default: {
-					TranslateMessage(&msg);
-					DispatchMessage(&msg);
-				} break;
-			}
-		}
 		LARGE_INTEGER current = getWallClock();
-		u64 microsecondsElapsed = getMicrosecondsElapsed(previous, current, perfCountFrequency);
+		uint64_t microsecondsElapsed = getMicrosecondsElapsed(previous, current, perfCountFrequency);
 		previous = current;
 
 		// microsecondsElapsed is converted from microseconds to seconds and added to lag variable
@@ -565,7 +536,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		// LARGE_INTEGER sleep = getWallClock();
 		// float remaining = getMicrosecondsElapsed(previous, sleep, perfCountFrequency) / (1000.0f * 1000.0f);
 		// while(remaining < targetSeconds) {
-		// 	s64 amount = (DWORD)((targetSeconds - remaining) * 1000.0f);
+		// 	int64_t amount = (DWORD)((targetSeconds - remaining) * 1000.0f);
 		// 	remaining = getMicrosecondsElapsed(previous, getWallClock(), perfCountFrequency) / (1000.0f * 1000.0f);
 		// 	Sleep((DWORD)amount);
 		// }
@@ -583,6 +554,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 	VirtualFree(gameMemory.storage, 0, MEM_RELEASE);
 	VirtualFree(buffer.memory, 0, MEM_RELEASE);
-	return (s32)msg.wParam;
+	return 0;
 }
 #endif

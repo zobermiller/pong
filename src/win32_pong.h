@@ -39,16 +39,16 @@ enum wall {
 
 struct offscreen_buffer {
 	void *memory;
-	s32 width;
-	s32 height;
-	s32 pitch;
-	s32 bytesPerPixel;
+	int width;
+	int height;
+	int pitch;
+	int bytesPerPixel;
 	BITMAPINFO info;
 };
 
 struct game_memory {
 	void* storage;
-	u32 storageSize;
+	uint32_t storageSize;
 };
 
 struct player {
@@ -56,7 +56,7 @@ struct player {
 	
 	// Size is (width, height)
 	v2 size; 
-	u32 score;
+	uint32_t score;
 
 	v2 vertices[4];
 };
@@ -85,14 +85,14 @@ struct game_state {
 	program_input input[2];
 	ball ball;
 
-	u32 arenaWidth, arenaHeight;
+	uint32_t arenaWidth, arenaHeight;
 
 	bool programRunning;
 };
 
 struct window_dimension {
-	s32 width;
-	s32 height;
+	int width;
+	int height;
 };
 
 #endif
