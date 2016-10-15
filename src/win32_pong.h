@@ -29,12 +29,12 @@
 #define Align16(value) ((value + 15) & ~15)
 
 enum wall {
-	WallNone,
-
 	WallLeft,
 	WallRight,
 	WallUp,
 	WallDown,
+
+	WallNone,
 };
 
 struct offscreen_buffer {
@@ -71,13 +71,21 @@ struct ball {
 	v2 vertices[4];
 };
 
+struct button_state {
+	bool endedDown;
+};
+
+struct program_input {
+	button_state up;
+	button_state down;
+};
+
 struct game_state {
 	player players[2];
+	program_input input[2];
 	ball ball;
 
 	u32 arenaWidth, arenaHeight;
-
-	bool keyDown[256];
 
 	bool programRunning;
 };

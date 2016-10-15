@@ -4,7 +4,7 @@ HWND hWnd;
 static WINDOWPLACEMENT globalWindowPosition = { sizeof(globalWindowPosition) };
 
 #define SOFTWARE 0
-#define VSYNC 1
+#define VSYNC 0
 
 void toggleFullscreen(HWND window) {
 	DWORD style = GetWindowLong(window, GWL_STYLE);
@@ -30,14 +30,59 @@ void toggleFullscreen(HWND window) {
 	}
 }
 
-void handleKeyDown(s32 vkCode, game_state *gameState) {
-	if(vkCode == VK_ESCAPE)
-		PostQuitMessage(0);
-	gameState->keyDown[vkCode] = true;
+void processKeyboardMessage(button_state *state, bool isDown) {
+	if(state->endedDown != isDown) {
+		state->endedDown = isDown;
+	}
 }
 
-void handleKeyUp(int vkCode, game_state *gameState) {
-	gameState->keyDown[vkCode] = false;
+void processPendingMessages(game_state *gameState) {
+	MSG msg;
+	while(PeekMessage(&msg, 0, 0, 0, PM_REMOVE)) {
+		switch(msg.message) {
+			case WM_QUIT: {
+				gameState->programRunning = false;
+			} break;
+
+			case WM_KEYUP:
+			case WM_SYSKEYDOWN:
+			case WM_SYSKEYUP:
+			case WM_KEYDOWN: {
+				u32 vkCode = (u32)msg.wParam;
+
+				bool wasDown = ((msg.lParam & (1 << 30)) != 0);
+				bool isDown = ((msg.lParam & (1 << 31)) == 0);
+				if(wasDown != isDown) {
+					if(vkCode == 'W') {
+						processKeyboardMessage(&gameState->input[0].up, isDown);
+					}
+					else if(vkCode == 'S') {
+						processKeyboardMessage(&gameState->input[0].down, isDown);
+					}
+					else if(vkCode == 'I') {
+						processKeyboardMessage(&gameState->input[1].up, isDown);
+					}
+					else if(vkCode == 'K') {
+						processKeyboardMessage(&gameState->input[1].down, isDown);
+					}
+					else if(vkCode == VK_ESCAPE) {
+						PostQuitMessage(0);
+					}
+					if(isDown) {
+						s32 altKey = (msg.lParam & (1 << 29));
+						if((vkCode == VK_RETURN) && altKey) {
+							toggleFullscreen(hWnd);
+						}
+					}
+				}
+			} break;
+
+			default: {
+				TranslateMessage(&msg);
+				DispatchMessageA(&msg);
+			} break;
+		}
+	}
 }
 
 inline LARGE_INTEGER getWallClock() {
@@ -52,15 +97,7 @@ inline u64 getMicrosecondsElapsed(LARGE_INTEGER start, LARGE_INTEGER end, u64 pe
 }
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
-	switch(message) {
-		case WM_DESTROY: {
-			PostQuitMessage(0);
-		} break;
-
-		default:
-		return DefWindowProc(hWnd, message, wParam, lParam);
-	}
-	return NULL;
+	return DefWindowProc(hWnd, message, wParam, lParam);
 }
 
 window_dimension getWindowDimension(HWND hWnd) {
@@ -74,15 +111,11 @@ window_dimension getWindowDimension(HWND hWnd) {
 	return result;
 }
 
-inline void makeRectFromCenterPoint(v2 *vertices, v2 centerPoint, v2 size) {
-	vertices[0] = V2(centerPoint.x - 0.5f * size.x,
-	                 centerPoint.y - 0.5f * size.y);
-	vertices[1] = V2(centerPoint.x + 0.5f * size.x,
-	                 centerPoint.y - 0.5f * size.y);
-	vertices[2] = V2(centerPoint.x + 0.5f * size.x,
-	                 centerPoint.y + 0.5f * size.y);
-	vertices[3] = V2(centerPoint.x - 0.5f * size.x,
-	                 centerPoint.y + 0.5f * size.y);
+inline void makeRectFromCenterPoint(v2 vertices[], v2 centerPoint, v2 size) {
+	vertices[0] = V2(centerPoint.x - (0.5f * size.x), centerPoint.y - (0.5f * size.y));
+	vertices[1] = V2(centerPoint.x + (0.5f * size.x), centerPoint.y - (0.5f * size.y));
+	vertices[2] = V2(centerPoint.x + (0.5f * size.x), centerPoint.y + (0.5f * size.y));
+	vertices[3] = V2(centerPoint.x - (0.5f * size.x), centerPoint.y + (0.5f * size.y));
 }
 
 void initGameState(game_state *gameState, u32 arenaWidth, u32 arenaHeight,
@@ -103,12 +136,6 @@ void initGameState(game_state *gameState, u32 arenaWidth, u32 arenaHeight,
 	gameState->ball.velocity = V2(0, 0);
 
 	gameState->programRunning = true;
-
-	makeRectFromCenterPoint(gameState->ball.vertices, gameState->ball.pos, gameState->ball.size);
-	makeRectFromCenterPoint(gameState->players[0].vertices, gameState->players[0].pos,
-	                        gameState->players[0].size);
-	makeRectFromCenterPoint(gameState->players[1].vertices, gameState->players[1].pos,
-	                        gameState->players[1].size);
 }
 
 inline wall collidedWithWall(v2 pos, v2 size, u32 arenaWidth, u32 arenaHeight) {
@@ -130,13 +157,13 @@ inline wall collidedWithWall(v2 pos, v2 size, u32 arenaWidth, u32 arenaHeight) {
 }
 
 void update(game_state *gameState, float dt) {
-	wall whichWall = collidedWithWall(gameState->ball.pos, gameState->ball.size,
-	                                  gameState->arenaWidth, gameState->arenaHeight);
+	wall whichWallBall = collidedWithWall(gameState->ball.pos, gameState->ball.size,
+	                                      gameState->arenaWidth, gameState->arenaHeight);
 
-	if(whichWall == WallLeft || whichWall == WallRight) {
+	if(whichWallBall == WallLeft || whichWallBall == WallRight) {
 		gameState->ball.velocity = V2(-gameState->ball.velocity.x, gameState->ball.velocity.y);
 	}
-	if(whichWall == WallUp || whichWall == WallDown) {
+	if(whichWallBall == WallUp || whichWallBall == WallDown) {
 		gameState->ball.velocity = V2(gameState->ball.velocity.x, -gameState->ball.velocity.y);
 	}
 
@@ -144,47 +171,44 @@ void update(game_state *gameState, float dt) {
 	gameState->ball.velocity += dt * acceleration;
 	gameState->ball.pos += dt * gameState->ball.velocity;
 
-	whichWall = collidedWithWall(gameState->players[0].pos, gameState->players[0].size,
-	                             gameState->arenaWidth, gameState->arenaHeight);
+	wall whichWallPlayer0 = collidedWithWall(gameState->players[0].pos, gameState->players[0].size,
+	                                         gameState->arenaWidth, gameState->arenaHeight);
 	v2 player0VelocityUp = Paddle_Velocity_Up;
 	v2 player0VelocityDown = Paddle_Velocity_Down;
 
-	if(whichWall == WallUp) {
+	if(whichWallPlayer0 == WallUp) {
 		player0VelocityUp = V2(0, 0);
 	}
-	if(whichWall == WallDown) {
+	if(whichWallPlayer0 == WallDown) {
 		player0VelocityDown = V2(0, 0);
 	}
 
-	whichWall = collidedWithWall(gameState->players[1].pos, gameState->players[1].size,
-	                             gameState->arenaWidth, gameState->arenaHeight);
+	wall whichWallPlayer1 = collidedWithWall(gameState->players[1].pos, gameState->players[1].size,
+	                                         gameState->arenaWidth, gameState->arenaHeight);
 	v2 player1VelocityUp = Paddle_Velocity_Up;
 	v2 player1VelocityDown = Paddle_Velocity_Down;
 
-	if(whichWall == WallUp) {
+	if(whichWallPlayer1 == WallUp) {
 		player1VelocityUp = V2(0, 0);
 	}
-	if(whichWall == WallDown) {
+	if(whichWallPlayer1 == WallDown) {
 		player1VelocityDown = V2(0, 0);
 	}
 
-	if(gameState->keyDown[0x57]) { // W
+
+	if(gameState->input[0].up.endedDown) {
 		gameState->players[0].pos += dt * player0VelocityUp;
 	}
-	if(gameState->keyDown[0x53]) { // S
+	if(gameState->input[0].down.endedDown) {
 		gameState->players[0].pos += dt * player0VelocityDown;
 	}
-	if(gameState->keyDown[0x49]) { // I
+	if(gameState->input[1].up.endedDown) {
 		gameState->players[1].pos += dt * player1VelocityUp;
 	}
-	if(gameState->keyDown[0x4b]) { // K
+	if(gameState->input[1].down.endedDown) {
 		gameState->players[1].pos += dt * player1VelocityDown;
 	}
-	if(gameState->keyDown[VK_SPACE]) {
-		gameState->ball.velocity = Ball_Initial_Velocity;
-	}
 }
-
 
 
 
@@ -209,13 +233,13 @@ bool initGL() {
 	return true;
 }
 
-inline void quad(v2 *vertices) {
+inline void quad(v2 vertices[], s32 n) {
+	// n is assumed to be 4 or a multiple of 4.
 	glBegin(GL_QUADS);
 
-	glVertex2f(vertices[0].x, vertices[0].y);
-	glVertex2f(vertices[1].x, vertices[1].y);
-	glVertex2f(vertices[2].x, vertices[2].y);
-	glVertex2f(vertices[3].x, vertices[3].y);
+	for(int i=0; i < n; ++i) {
+		glVertex2f(vertices[i].x, vertices[i].y);
+	}
 
 	glEnd();
 }
@@ -244,9 +268,9 @@ void render(game_state *gameState, float offset) {
 	glColor3f(1.0f, 1.0f, 1.0f);
 
 	line(Screen_Width / 2.0f, 0.0f, Screen_Width / 2.0f, Screen_Height);
-	quad(gameState->players[0].vertices);
-	quad(gameState->players[1].vertices);
-	quad(gameState->ball.vertices);
+	quad(gameState->players[0].vertices, 4);
+	quad(gameState->players[1].vertices, 4);
+	quad(gameState->ball.vertices, 4);
 
 	glFlush();
 }
@@ -312,10 +336,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	              V2(Screen_Width - 50, Player_Default_Y), V2(Ball_Default_X, Ball_Default_Y),
 	              V2(Player_Width, Player_Height), V2(Ball_Width, Ball_Height));
 
-	MSG msg;
 	LARGE_INTEGER previous = getWallClock();
 	float accumulator = 0.0f;
-	float targetSeconds = 1 / 120.0f;
+	float targetSeconds = 1 / 480.0f;
 
 	PFNWGLSWAPINTERVALEXTPROC proc = (PFNWGLSWAPINTERVALEXTPROC)wglGetProcAddress("wglSwapIntervalEXT");
 #if VSYNC
@@ -324,53 +347,31 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	proc(0);
 #endif
 	while(gameState->programRunning) {
+		processPendingMessages(gameState);
 
-		while(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
-			switch(msg.message) {
-				case WM_QUIT: {
-					gameState->programRunning = false;
-				} break;
-
-				case WM_KEYDOWN: {
-					handleKeyDown((s32)msg.wParam, gameState);
-				} break;
-
-				case WM_KEYUP: {
-					handleKeyUp((s32)msg.wParam, gameState);
-				} break;
-
-				default: {
-					TranslateMessage(&msg);
-					DispatchMessage(&msg);
-				} break;
-			}
-		}
-#if 0
-		update(gameState, targetSeconds);
-		render(gameState, 0);
-		SwapBuffers(deviceContext);
-#else
 		LARGE_INTEGER current = getWallClock();
 		s64 microsecondsElapsed = getMicrosecondsElapsed(previous, current, perfCountFrequency);
 		previous = current;
 
 		// microsecondsElapsed is converted from microseconds to seconds and added to accumulator variable
-		accumulator += (microsecondsElapsed / (1000.0f * 1000.0f));
+		// accumulator += (microsecondsElapsed / (1000.0f * 1000.0f));
 
-		while(accumulator >= targetSeconds) {
-			update(gameState, targetSeconds);
-			accumulator -= targetSeconds;
-		}
+		// while(accumulator >= targetSeconds) {
+		// 	update(gameState, targetSeconds);
+		// 	accumulator -= targetSeconds;
+		// }
 
-		float offset = accumulator / targetSeconds;
+		// float offset = accumulator / targetSeconds;
+		float offset = 0.0f;
+		update(gameState, targetSeconds);
 		render(gameState, offset);
 		SwapBuffers(deviceContext);
 
-		// LARGE_INTEGER sleep = getWallClock();
-		// float remaining = getMicrosecondsElapsed(current, sleep, perfCountFrequency) / (1000.0f * 1000.0f);
-		// while(remaining < targetSeconds) {
-		// 	remaining = getMicrosecondsElapsed(current, getWallClock(), perfCountFrequency) / (1000.0f * 1000.0f);
-		// }
+		LARGE_INTEGER sleep = getWallClock();
+		float remaining = getMicrosecondsElapsed(current, sleep, perfCountFrequency) / (1000.0f * 1000.0f);
+		while(remaining < targetSeconds) {
+			remaining = getMicrosecondsElapsed(current, getWallClock(), perfCountFrequency) / (1000.0f * 1000.0f);
+		}
 
 #if 0
 		LARGE_INTEGER end = getWallClock();
@@ -381,13 +382,21 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 		OutputDebugString(fpsBuffer);
 #endif
-#endif
 	}
 
 	wglDeleteContext(renderContext);
 	VirtualFree(gameMemory.storage, 0, MEM_RELEASE);
-	return (s32)msg.wParam;
+	return 0;
 }
+
+
+
+
+
+
+
+
+
 
 
 
