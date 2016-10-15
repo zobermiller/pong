@@ -48,7 +48,7 @@ struct offscreen_buffer {
 
 struct game_memory {
 	void* storage;
-	uint32_t storageSize;
+	u32 storageSize;
 };
 
 struct player {
@@ -56,7 +56,7 @@ struct player {
 	
 	// Size is (width, height)
 	v2 size; 
-	uint32_t score;
+	u32 score;
 
 	v2 vertices[4];
 };
@@ -85,7 +85,7 @@ struct game_state {
 	program_input input[2];
 	ball ball;
 
-	uint32_t arenaWidth, arenaHeight;
+	u32 arenaWidth, arenaHeight;
 
 	bool programRunning;
 };
