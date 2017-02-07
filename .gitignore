@@ -1,5 +1,6 @@
 ipch
 build
+data
 *.exe
 *.sdf
 *.pdb
