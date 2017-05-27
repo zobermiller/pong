@@ -1,7 +1,7 @@
 #ifndef WIN32_PONG_H
 #define WIN32_PONG_H
 
-#include "precompiled.h"
+#include "globals.h"
 #include "pong_math.h"
 
 #define kilobytes(value) ((value) * 1024LL)
@@ -21,24 +21,24 @@
 #define Paddle_Velocity_Up V2(0.0f, -400.0f)
 #define Paddle_Velocity_Down V2(0.0f, 400.0f)
 
-#define Ball_Initial_Velocity V2(800.0f, 0.0f)
+#define Ball_Initial_Velocity V2(1600.0f, 0.0f)
 
 #define Ball_Default_X (Screen_Width / 2.0f)
 #define Ball_Default_Y (Screen_Height / 2.0f)
 
-#define Align16(value) ((value + 15) & ~15)
+#define Align16(value) (((value) + 15) & ~15)
 
 enum wall {
+	WallNone,
+
 	WallLeft,
 	WallRight,
 	WallUp,
 	WallDown,
-
-	WallNone,
 };
 
 struct offscreen_buffer {
-	void *memory;
+	void* memory;
 	int width;
 	int height;
 	int pitch;

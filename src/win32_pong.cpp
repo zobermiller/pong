@@ -1,10 +1,11 @@
 #include "win32_pong.h"
 
-HWND hWnd;
+#define assert(n) do{ if (!(n)) *(int*)0 = 0xA11E; }while(0)
+
+static HWND hWnd;
 static WINDOWPLACEMENT globalWindowPosition = { sizeof(globalWindowPosition) };
 
-#define SOFTWARE 0
-#define VSYNC 0
+#define VSYNC 1
 
 void toggleFullscreen(HWND window) {
 	DWORD style = GetWindowLong(window, GWL_STYLE);
@@ -12,7 +13,9 @@ void toggleFullscreen(HWND window) {
 	if(style & WS_OVERLAPPEDWINDOW) {
 		MONITORINFO monitorInfo = { sizeof(monitorInfo) };
 
-		if(GetWindowPlacement(window, &globalWindowPosition) && GetMonitorInfo(MonitorFromWindow(window, MONITOR_DEFAULTTOPRIMARY), &monitorInfo)) {
+		if(GetWindowPlacement(window, &globalWindowPosition) &&
+		   GetMonitorInfo(MonitorFromWindow(window, MONITOR_DEFAULTTOPRIMARY), &monitorInfo)) {
+			
 			SetWindowLong(window, GWL_STYLE, style & ~WS_OVERLAPPEDWINDOW);
 			SetWindowPos(window, HWND_TOP,
 			             monitorInfo.rcMonitor.left, monitorInfo.rcMonitor.top,
@@ -213,7 +216,6 @@ void update(game_state *gameState, float dt) {
 
 
 
-#if !SOFTWARE
 bool initGL() {
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -234,7 +236,8 @@ bool initGL() {
 }
 
 inline void quad(v2 vertices[], int n) {
-	// n is assumed to be 4 or a multiple of 4.
+	assert(n % 4 == 0);
+	
 	glBegin(GL_QUADS);
 
 	for(int i=0; i < n; ++i) {
@@ -252,6 +255,7 @@ inline void line(float x0, float y0, float x1, float y1) {
 
 	glEnd();
 }
+
 
 void render(game_state *gameState, float offset) {
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -338,7 +342,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 	LARGE_INTEGER previous = getWallClock();
 	float accumulator = 0.0f;
-	float targetSeconds = 1 / 480.0f;
+	float targetFixedStep = 1 / 60.0f;
+	float targetFPS = 1 / 60.0f;
 
 	PFNWGLSWAPINTERVALEXTPROC proc = (PFNWGLSWAPINTERVALEXTPROC)wglGetProcAddress("wglSwapIntervalEXT");
 #if VSYNC
@@ -356,21 +361,20 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		// microsecondsElapsed is converted from microseconds to seconds and added to accumulator variable
 		accumulator += (microsecondsElapsed / (1000.0f * 1000.0f));
 
-		// while(accumulator >= targetSeconds) {
-		// 	update(gameState, targetSeconds);
-		// 	accumulator -= targetSeconds;
-		// }
+		while(accumulator >= targetFixedStep) {
+			update(gameState, targetFixedStep);
+			accumulator -= targetFixedStep;
+		}
 
-		float offset = accumulator / targetSeconds;
-		update(gameState, targetSeconds);
-		render(gameState, 0.0f);
+		float offset = accumulator / targetFixedStep;
+		render(gameState, offset);
 		SwapBuffers(deviceContext);
 
-		LARGE_INTEGER sleep = getWallClock();
-		float remaining = getMicrosecondsElapsed(current, sleep, perfCountFrequency) / (1000.0f * 1000.0f);
-		while(remaining < targetSeconds) {
-			remaining = getMicrosecondsElapsed(current, getWallClock(), perfCountFrequency) / (1000.0f * 1000.0f);
-		}
+		// LARGE_INTEGER sleep = getWallClock();
+		// float remaining = getMicrosecondsElapsed(current, sleep, perfCountFrequency) / (1000.0f * 1000.0f);
+		// while(remaining < targetFPS) {
+		// 	remaining = getMicrosecondsElapsed(current, getWallClock(), perfCountFrequency) / (1000.0f * 1000.0f);
+		// }
 
 #if 1
 		LARGE_INTEGER end = getWallClock();
@@ -402,8 +406,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 
 
-
-#else
+#if 0
 void resizeDIBSection(offscreen_buffer *buffer, int width, int height) {
 	buffer->width = width;
 	buffer->height = height;
@@ -521,7 +524,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		u64 microsecondsElapsed = getMicrosecondsElapsed(previous, current, perfCountFrequency);
 		previous = current;
 
-		// microsecondsElapsed is converted from microseconds to seconds and added to lag variable
+		// microsecondsElapsed is converted from microseconds to seconds and added to lag value
 		lag += (microsecondsElapsed / (1000.0f * 1000.0f));
 
 		while(lag >= targetSeconds) {

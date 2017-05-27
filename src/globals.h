@@ -1,9 +1,7 @@
-#ifndef PRECOMPILED_H
-#define PRECOMPILED_H
+#ifndef GLOBALS_H
+#define GLOBALS_H
 
 #include <windows.h>
-#include <io.h>
-#include <fcntl.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <stddef.h>

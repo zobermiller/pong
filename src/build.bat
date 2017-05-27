@@ -9,4 +9,5 @@ set LinkerFlags=-incremental:no -opt:ref gdi32.lib user32.lib winmm.lib opengl32
 IF NOT EXIST ..\build mkdir ..\build
 pushd ..\build
 
-cl %CompilerFlags% ../src/win32_pong.cpp /link %LinkerFlags%
+cl %CompilerFlags% ..\src\win32_pong.cpp /link %LinkerFlags% 
+popd
