@@ -1,8 +1,25 @@
 #ifndef WIN32_PONG_H
 #define WIN32_PONG_H
 
-#include "globals.h"
+#include <windows.h>
+#include <stdio.h>
+#include <stdint.h>
+#include <stddef.h>
+#include <cmath>
+#include <gl/gl.h>
+#include <gl/wglext.h>
+
 #include "pong_math.h"
+
+typedef uint8_t u8;
+typedef uint16_t u16;
+typedef uint32_t u32;
+typedef uint64_t u64;
+
+typedef int8_t s8;
+typedef int16_t s16;
+typedef int32_t s32;
+typedef int64_t s64;
 
 #define kilobytes(value) ((value) * 1024LL)
 #define megabytes(value) (kilobytes(value) * 1024LL)

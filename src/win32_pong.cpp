@@ -100,7 +100,16 @@ inline u64 getMicrosecondsElapsed(LARGE_INTEGER start, LARGE_INTEGER end, u64 pe
 }
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
-	return DefWindowProc(hWnd, message, wParam, lParam);
+	switch(message) {
+		case WM_DESTROY: {
+			PostQuitMessage(0);
+		} break;
+
+		default: {
+			return DefWindowProc(hWnd, message, wParam, lParam);
+		}
+	}
+	return 0;
 }
 
 window_dimension getWindowDimension(HWND hWnd) {
@@ -255,7 +264,6 @@ inline void line(float x0, float y0, float x1, float y1) {
 
 	glEnd();
 }
-
 
 void render(game_state *gameState, float offset) {
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
