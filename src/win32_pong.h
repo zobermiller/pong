@@ -7,7 +7,8 @@
 #include <stddef.h>
 #include <cmath>
 #include <gl/gl.h>
-#include <gl/wglext.h>
+
+#include "gl/wglext.h"
 
 #include "pong_math.h"
 
