@@ -1,4 +1,4 @@
-#include "win32_pong.h"
+#include "pong.h"
 
 #define assert(n) do{ if (!(n)) *(int*)0 = 0xA11E; }while(0)
 

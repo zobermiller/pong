@@ -1,5 +1,5 @@
-#ifndef WIN32_PONG_H
-#define WIN32_PONG_H
+#ifndef PONG_H
+#define PONG_H
 
 #include <windows.h>
 #include <stdio.h>
